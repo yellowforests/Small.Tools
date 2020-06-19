@@ -94,7 +94,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TaobaoCrawler\MenuHandler.cs" />
+    <Compile Include="TaobaoCrawler\Common\MenuHandler.cs" />
     <Compile Include="TaobaoCrawler\TaobaoCrawlerSmallTools.cs">
       <SubType>Form</SubType>
     </Compile>
