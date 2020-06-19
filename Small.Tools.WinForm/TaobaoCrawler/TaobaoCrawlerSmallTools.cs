@@ -3,6 +3,7 @@ using CefSharp.WinForms;
 using HtmlAgilityPack;
 using Small.Tools.Common.TaobaoCrawler;
 using Small.Tools.Entity.TaobaoCrawlerEntity;
+using Small.Tools.WinForm.TaobaoCrawler;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -82,7 +83,10 @@ namespace Small.Tools.WinForm
             InitializeComponent();
 
             CefSharpSettings.LegacyJavascriptBindingEnabled = true;
-            webBrowser = new ChromiumWebBrowser("https://ie.icoa.cn/");
+            webBrowser = new ChromiumWebBrowser("https://ie.icoa.cn/")
+            {
+                MenuHandler = new MenuHandler()
+            };
             webBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
             webBrowser.Location = new System.Drawing.Point(0, 0);
             webBrowser.MinimumSize = new System.Drawing.Size(20, 20);
@@ -91,7 +95,8 @@ namespace Small.Tools.WinForm
             webBrowser.TabIndex = 0;
             this.panel_right.Controls.Add(webBrowser);
 
-            webBrowser.Load(loginAddress);  //进入登录地址
+            //进入登录地址
+            webBrowser.Load(loginAddress);
         }
 
         //窗体加载
@@ -486,13 +491,15 @@ namespace Small.Tools.WinForm
                 {
                     webBrowser.Load(entity.ProductDetailsAddress);
                     var details = new TaobaoCrawlerDetails();
+                    details.PreferentialInfo = new List<PreferentialInfo>();
 
-                    Delay(2000);
+                    Delay(5000);
                     //开始解析详情页
                     HtmlAgilityPack.HtmlDocument document = new HtmlAgilityPack.HtmlDocument();
                     string htmlValue = GetHtml();
                     document.LoadHtml(htmlValue);
 
+                    #region //div[@class='tb-counter-bd']
                     //累计评论 | 交易成功(淘宝) //div[@class='tb-counter-bd']
                     HtmlNodeCollection evaluationOrTradingNodes = document.DocumentNode.SelectNodes("//div[@class='tb-counter-bd']");
                     if (evaluationOrTradingNodes != null)
@@ -510,6 +517,50 @@ namespace Small.Tools.WinForm
                             details.TransactionSuccessNum = trading.InnerText;
                         }
                     }
+                    #endregion
+                    #region //div[@class='tb-promo-item-bd']
+
+                    //价格
+                    var commodityPricesNodes = document.DocumentNode.SelectNodes("//div[@class='tb-promo-item-bd']");
+                    if (commodityPricesNodes != null)
+                    {
+                        var prices = commodityPricesNodes[0].SelectSingleNode("//strong[@class='tb-promo-price']//em[@id='J_PromoPriceNum']");
+                        if (prices != null)
+                        {
+                            details.CommodityPrices = prices.InnerText;
+                        }
+                    }
+
+                    #endregion
+                    #region //div[@class='tb-other-discount']
+                    //优惠
+                    ////div[starts-with(@class,'item J_MouserOnverReq')]
+                    var preferentialInfoNodes = document.DocumentNode.SelectNodes("//div[@class='tb-other-discount']");
+                    if (preferentialInfoNodes != null)
+                    {
+                        var preferentialOne = preferentialInfoNodes[0].SelectNodes("//div[starts-with(@class,'tb-other-discount-content')]");
+                        if (preferentialOne != null)
+                        {
+                            foreach (var preferential in preferentialOne)
+                            {
+                                //<div class="tb-coupon">
+                                var imgNodes = preferential.SelectNodes("//div[@class='tb-coupon']");
+                                foreach (var img in imgNodes)
+                                {
+                                    //优惠券icon | 优惠券内容信息
+                                    if (img.SelectSingleNode("//img[@class='tb-coupon-icon']") != null)
+                                    {
+                                        details.PreferentialInfo.Add(new PreferentialInfo()
+                                        {
+                                            PreferentialIMGAddress = "https:" + img.SelectSingleNode("//img[@class='tb-coupon-icon']").GetAttributeValue("src", ""),
+                                            PreferentialContent = img.InnerText.Replace("\n", "").Replace(" ", "").Substring(0, img.InnerText.Replace("\n", "").Replace(" ", "").LastIndexOf("领取"))
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    #endregion
 
                 }
             }
