@@ -70,16 +70,6 @@ namespace Small.Tools.WinForm
         /// </summary>
         public ChromiumWebBrowser webBrowser;
 
-        /// <summary>
-        /// 是否加载页尾数据信息
-        /// </summary>
-        private static bool IsTotalNodes = true;
-
-        /// <summary>
-        /// list | details
-        /// </summary>
-        private static string type = "";
-
         #endregion
 
         //屏幕分辨率
@@ -92,7 +82,7 @@ namespace Small.Tools.WinForm
         public TaobaoCrawlerSmallTools()
         {
             InitializeComponent();
-            #region CefSharp Settings
+            #region > CefSharp Settings
             CefSettings settings = new CefSettings();
             settings.Locale = "zh-CN";
             Cef.Initialize(settings);
@@ -121,13 +111,10 @@ namespace Small.Tools.WinForm
         //窗体加载
         private void TaobaoCrawlerSmallTools_Load(object sender, EventArgs e) { LogWrite("程序正在启动，请稍后"); }
 
-        #region private The event
+        #region > private The event
 
         //窗体关闭
-        private void TaobaoCrawlerSmallTools_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Cef.Shutdown();
-        }
+        private void TaobaoCrawlerSmallTools_FormClosing(object sender, FormClosingEventArgs e) { Cef.Shutdown(); }
 
         //根据账号密码登录
         private async void butLogin_Click(object sender, EventArgs e)
@@ -137,6 +124,7 @@ namespace Small.Tools.WinForm
 
             //document.getElementsByClassName('fm-button fm-submit password-login')[0].click();
             await ClickElement("document.getElementsByClassName('fm-button fm-submit password-login')[0]");
+            LogWrite("登录成功");
         }
 
         //销量只可输入数据
@@ -156,7 +144,7 @@ namespace Small.Tools.WinForm
 
         #endregion
 
-        #region private methods
+        #region > private methods
 
         /// <summary>
         /// 休眠且避免页面卡死
@@ -197,6 +185,10 @@ namespace Small.Tools.WinForm
             return htmlValue;
         }
 
+        /// <summary>
+        /// 获取当前页面状态，是否加载完成
+        /// </summary>
+        /// <returns>string</returns>
         private string GetHtmlValue()
         {
             string htmlValue = string.Empty;
@@ -259,6 +251,10 @@ namespace Small.Tools.WinForm
             }));
         }
 
+        #endregion
+
+        #region > private task methods
+
         /// <summary>
         /// 是否需要登录
         /// </summary>
@@ -279,6 +275,91 @@ namespace Small.Tools.WinForm
             return false;
         }
 
+        /// <summary>
+        /// 模拟点击指定选择符DOM元素
+        /// </summary>
+        /// <param name="selector">js</param>
+        private async Task ClickElement(string selector)
+        {
+            var sSel = $"{selector}.getBoundingClientRect()";
+            var t = await webBrowser.EvaluateScriptAsync(sSel);
+            if (t.Result != null)
+            {
+                var expandoDic = t.Result as IDictionary<string, object>;
+                if ((null != expandoDic) && expandoDic.ContainsKey("left") && expandoDic.ContainsKey("top"))
+                {
+                    var left = Convert.ToInt32(expandoDic["left"]) + 5;
+                    var top = Convert.ToInt32(expandoDic["top"]) + 5;
+
+                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, false, 1, CefEventFlags.None);
+                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, true, 1, CefEventFlags.None);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 页面加载异步
+        /// </summary>
+        /// <param name="browser">CefSharp WebBrowser</param>
+        /// <returns>Task</returns>
+        public Task LoadPageAsync(IWebBrowser browser)
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            EventHandler<LoadingStateChangedEventArgs> handler = null;
+            handler = (sender, args) =>
+            {
+                if (!args.IsLoading)
+                {
+                    browser.LoadingStateChanged -= handler;
+                    taskCompletionSource.TrySetResultAsync(true);
+                }
+            };
+
+            browser.LoadingStateChanged += handler;
+            return taskCompletionSource.Task;
+        }
+
+        /// <summary>
+        /// 点击下一页
+        /// </summary>
+        /// <returns>bool</returns>
+        public async Task<bool> NextPage()
+        {
+            var source = await webBrowser.GetSourceAsync();
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(source);
+            await Task.Delay(2000);
+            var buttonNext = htmlDoc.DocumentNode.Descendants().FirstOrDefault();
+            if (buttonNext != null)
+            {
+                await ClickElement("document.querySelectorAll('[trace=srp_bottom_pagedown]')[0]");
+                await AnalysisListPage();
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取“IFrame”的Html
+        /// </summary>
+        /// <returns>string</returns>
+        public async Task<string> GetFrameHtml(int index, string frameName, string url)
+        {
+            string resultStr = string.Empty;
+            IFrame frame = null;
+            var identifiers = webBrowser.GetBrowser().GetFrameIdentifiers();
+            foreach (var i in identifiers)
+            {
+                frame = webBrowser.GetBrowser().GetFrame(i);
+                if (frame.Name == frameName || frame.Url.IndexOf("url") != -1)
+                {
+                    return await frame.GetSourceAsync();
+                }
+            }
+            return string.Empty;
+        }
+
         #endregion
 
         //开始解析数据
@@ -286,17 +367,22 @@ namespace Small.Tools.WinForm
         {
             if (string.IsNullOrWhiteSpace(txtKeyword.Text.Trim())) { MessageBox.Show("请输入需要搜索的关键字。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
-            butStartParsing.Enabled = true; //禁用
-            entitySource = new List<TaobaoCrawlerEntity>(); //存储列表页数据信息
-
             //跳转页面
             string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 0);
             webBrowser.Load(new_searchAddress);
             while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
-            await Task.Delay(1500);
+            await Task.Delay(1000);
 
+            //判断是否需要登录
             var isLogin = await WhetherYouNeedToLogin();
             if (isLogin) { MessageBox.Show("请先登录，才可进行解析。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+            entitySource = new List<TaobaoCrawlerEntity>(); //存储列表页数据信息
+            butStartParsing.Enabled = false; //禁用
+
+            LogWrite("正在解析中，请耐心等待");
+            LogWrite("按钮已禁用，等待解析完成释放");
+            LogWrite("—————————————————————————————————————————————————————————————");
 
             //平台
             string platformCode = string.Empty;
@@ -306,6 +392,7 @@ namespace Small.Tools.WinForm
             else if (radioTmall.Checked) { platformCode = "tmall"; platformName = "天猫"; }
 
             //解析数量页数，数据量
+            #region > 解析数量页数，数据量
             int analysisPageSize = 0;
             int analysisCount = 0;
             if (string.IsNullOrWhiteSpace(txtAnlyticNumber.Text.Trim()) || Convert.ToInt32(txtAnlyticNumber.Text.Trim()) == 0)
@@ -323,10 +410,11 @@ namespace Small.Tools.WinForm
                 analysisPageSize = Convert.ToInt32(txtAnlyticNumber.Text.Trim());
                 analysisCount = (Convert.ToInt32(txtAnlyticNumber.Text.Trim()) - 1) * 44;
             }
+            #endregion
 
+            //解析“Html”数据信息
             LogWrite("正在解析第“1”页数据信息");
             await AnalysisListPage();
-
             for (int i = 2; i <= Convert.ToInt32(txtAnlyticNumber.Text.Trim()); i++)
             {
                 string next_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 2 * 44);
@@ -374,7 +462,7 @@ namespace Small.Tools.WinForm
             try
             {
                 //启动定时器
-                timer.Enabled = true;
+                //timer.Enabled = true;
                 await Task.Delay(1200);
 
                 var source = await webBrowser.GetSourceAsync();
@@ -573,7 +661,6 @@ namespace Small.Tools.WinForm
                     button1_Click(null, null);
                     await Task.Delay(2000);
                 }
-
                 #region 解析“Html”
 
                 #region 累计评论，交易成功(淘宝) //div[@class='tb-counter-bd']
@@ -685,38 +772,50 @@ namespace Small.Tools.WinForm
             while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
 
             //验证模态框
+            #region 读取验证模态框
+
             var dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
             if (dialog_nodes == null)
                 dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
             if (dialog_nodes == null)
                 dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
 
+            //上面没有读取到验证码模态框，所以去“Frame”读写模态框
             if (dialog_nodes == null)
             {
-                var htmlBody = GetHtml();
-                var htmlBodyDoc = new HtmlAgilityPack.HtmlDocument();
-                htmlBodyDoc.LoadHtml(htmlBody);
-                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+                int index = 0;
+                do
+                {
+                    var htmlBody = await GetFrameHtml(index, "<!--dynamicFrame889C6A0361F526C951EACB19C2BC4D31-->", "https://mdskip.taobao.com//core/initItemDetail.htm");
+                    if (htmlBody != null)
+                    {
+                        await Task.Delay(1200); //休息一下下
+                        var htmlBodyDoc = new HtmlAgilityPack.HtmlDocument();
+                        htmlBodyDoc.LoadHtml(htmlBody);
+                        while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
 
-                dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
-                if (dialog_nodes == null)
-                    dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
-                if (dialog_nodes == null)
-                    dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
+                        dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
+                        if (dialog_nodes == null)
+                            dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
+                        if (dialog_nodes == null)
+                            dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
+
+                        if (dialog_nodes != null) break;
+                    }
+                } while (index++ <= webBrowser.GetBrowser().GetFrameCount());
             }
+
+            #endregion
 
             if (dialog_nodes != null)
             {
                 try
                 {
-                    await GetCaptchaPosition();
-                    dialog_nodes.SetAttributeValue("style", "display: none; ");
+                    await GetCaptchaPosition(); //绑定事件获取位置坐标
+                    LogWrite("正在解析滑动验证码");
+                    return true;
                 }
-                catch (Exception ex)
-                {
-                    throw new Exception(ex.Message);
-                }
-                return true;
+                catch (Exception ex) { throw new Exception(ex.Message); }
             }
             else
             {
@@ -725,74 +824,7 @@ namespace Small.Tools.WinForm
         }
 
 
-        #region private task methods
 
-        /// <summary>
-        /// 模拟点击指定选择符DOM元素
-        /// </summary>
-        /// <param name="selector">js</param>
-        private async Task ClickElement(string selector)
-        {
-            var sSel = $"{selector}.getBoundingClientRect()";
-            var t = await webBrowser.EvaluateScriptAsync(sSel);
-            if (t.Result != null)
-            {
-                var expandoDic = t.Result as IDictionary<string, object>;
-                if ((null != expandoDic) && expandoDic.ContainsKey("left") && expandoDic.ContainsKey("top"))
-                {
-                    var left = Convert.ToInt32(expandoDic["left"]) + 5;
-                    var top = Convert.ToInt32(expandoDic["top"]) + 5;
-
-                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, false, 1, CefEventFlags.None);
-                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, true, 1, CefEventFlags.None);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 页面加载异步
-        /// </summary>
-        /// <param name="browser">CefSharp WebBrowser</param>
-        /// <returns>Task</returns>
-        public Task LoadPageAsync(IWebBrowser browser)
-        {
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-
-            EventHandler<LoadingStateChangedEventArgs> handler = null;
-            handler = (sender, args) =>
-            {
-                if (!args.IsLoading)
-                {
-                    browser.LoadingStateChanged -= handler;
-                    taskCompletionSource.TrySetResultAsync(true);
-                }
-            };
-
-            browser.LoadingStateChanged += handler;
-            return taskCompletionSource.Task;
-        }
-
-        /// <summary>
-        /// 点击下一页
-        /// </summary>
-        /// <returns>bool</returns>
-        public async Task<bool> NextPage()
-        {
-            var source = await webBrowser.GetSourceAsync();
-            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
-            htmlDoc.LoadHtml(source);
-            await Task.Delay(2000);
-            var buttonNext = htmlDoc.DocumentNode.Descendants().FirstOrDefault();
-            if (buttonNext != null)
-            {
-                await ClickElement("document.querySelectorAll('[trace=srp_bottom_pagedown]')[0]");
-                await AnalysisListPage();
-                return true;
-            }
-            return false;
-        }
-
-        #endregion
 
         private async void button1_Click(object sender, EventArgs e)
         {
@@ -890,6 +922,26 @@ namespace Small.Tools.WinForm
                     }
 
                     var dataTable = DataTableCommon.ListToDataTable<TaobaoCrawlerEntityToDataTable>(dataTableInfos);
+                    string error = string.Empty;
+                    var dic = new Dictionary<string, string>();
+                    dic.Add("CollectTheSentiment", "CollectTheSentiment");
+                    dic.Add("CommodityPrices", "CommodityPrices");
+                    dic.Add("CumulativeCommentsNum", "CumulativeCommentsNum");
+                    dic.Add("TransactionSuccessNum", "TransactionSuccessNum");
+                    dic.Add("PreferentialContent", "PreferentialContent");
+                    dic.Add("PlatformCode", "PlatformCode");
+                    dic.Add("PlatformName", "PlatformName");
+                    dic.Add("ProductDetailsAddress", "ProductDetailsAddress");
+                    dic.Add("ProductDetailsPageName", "ProductDetailsPageName");
+                    dic.Add("ProductId", "ProductId");
+                    dic.Add("ProductMoney", "ProductMoney");
+                    dic.Add("ProductSearchListImgAddress", "ProductSearchListImgAddress");
+                    dic.Add("ProductSearchListName", "ProductSearchListName");
+                    dic.Add("ProductSellNumber", "ProductSellNumber");
+                    dic.Add("ShopName", "ShopName");
+                    dic.Add("ShopNameAddress", "ShopNameAddress");
+                    dic.Add("StoreAddress", "StoreAddress");
+                    ExcelCommon.ToExcel(dataTable, foldPath, dic, ref error);
                 }
             }
         }

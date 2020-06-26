@@ -34,6 +34,9 @@ namespace Small.Tools.WinForm
             this.panel_middle = new System.Windows.Forms.Panel();
             this.panel_right = new System.Windows.Forms.Panel();
             this.panel_left_middle = new System.Windows.Forms.Panel();
+            this.button2 = new System.Windows.Forms.Button();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.txtAnlyticNumber = new System.Windows.Forms.TextBox();
             this.labAnlytic = new System.Windows.Forms.Label();
             this.butLogin = new System.Windows.Forms.Button();
@@ -43,6 +46,7 @@ namespace Small.Tools.WinForm
             this.radioAll = new System.Windows.Forms.RadioButton();
             this.radioTaobao = new System.Windows.Forms.RadioButton();
             this.radioTmall = new System.Windows.Forms.RadioButton();
+            this.butExportExcel = new System.Windows.Forms.Button();
             this.butStartParsing = new System.Windows.Forms.Button();
             this.txtSales = new System.Windows.Forms.TextBox();
             this.txtPassWord = new System.Windows.Forms.TextBox();
@@ -52,13 +56,9 @@ namespace Small.Tools.WinForm
             this.labSales = new System.Windows.Forms.Label();
             this.labKeyword = new System.Windows.Forms.Label();
             this.panel_left = new System.Windows.Forms.Panel();
-            this.panel_bottom = new System.Windows.Forms.Panel();
-            this.button1 = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
-            this.butExportExcel = new System.Windows.Forms.Button();
-            this.timer = new System.Windows.Forms.Timer(this.components);
             this.listBox_LogOutput = new System.Windows.Forms.ListBox();
-            this.button2 = new System.Windows.Forms.Button();
+            this.panel_bottom = new System.Windows.Forms.Panel();
+            this.timer = new System.Windows.Forms.Timer(this.components);
             this.panel_middle.SuspendLayout();
             this.panel_left_middle.SuspendLayout();
             this.panel_left.SuspendLayout();
@@ -80,9 +80,9 @@ namespace Small.Tools.WinForm
             // 
             this.panel_right.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panel_right.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel_right.Location = new System.Drawing.Point(489, 0);
+            this.panel_right.Location = new System.Drawing.Point(540, 0);
             this.panel_right.Name = "panel_right";
-            this.panel_right.Size = new System.Drawing.Size(218, 373);
+            this.panel_right.Size = new System.Drawing.Size(167, 373);
             this.panel_right.TabIndex = 3;
             // 
             // panel_left_middle
@@ -110,10 +110,39 @@ namespace Small.Tools.WinForm
             this.panel_left_middle.Controls.Add(this.labSales);
             this.panel_left_middle.Controls.Add(this.labKeyword);
             this.panel_left_middle.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panel_left_middle.Location = new System.Drawing.Point(227, 0);
+            this.panel_left_middle.Location = new System.Drawing.Point(278, 0);
             this.panel_left_middle.Name = "panel_left_middle";
             this.panel_left_middle.Size = new System.Drawing.Size(262, 373);
             this.panel_left_middle.TabIndex = 2;
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(95, 321);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 13;
+            this.button2.Text = "button2";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(41, 281);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 21);
+            this.textBox1.TabIndex = 12;
+            this.textBox1.Text = "960,480";
+            this.textBox1.DoubleClick += new System.EventHandler(this.textBox1_DoubleClick);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(147, 279);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 11;
+            this.button1.Text = "button1";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // txtAnlyticNumber
             // 
@@ -137,6 +166,7 @@ namespace Small.Tools.WinForm
             // 
             // butLogin
             // 
+            this.butLogin.Cursor = System.Windows.Forms.Cursors.Hand;
             this.butLogin.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.butLogin.Location = new System.Drawing.Point(178, 65);
             this.butLogin.Name = "butLogin";
@@ -212,8 +242,21 @@ namespace Small.Tools.WinForm
             this.radioTmall.Text = "天 猫";
             this.radioTmall.UseVisualStyleBackColor = true;
             // 
+            // butExportExcel
+            // 
+            this.butExportExcel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.butExportExcel.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.butExportExcel.Location = new System.Drawing.Point(56, 243);
+            this.butExportExcel.Name = "butExportExcel";
+            this.butExportExcel.Size = new System.Drawing.Size(115, 23);
+            this.butExportExcel.TabIndex = 3;
+            this.butExportExcel.Text = "导出“Excel”";
+            this.butExportExcel.UseVisualStyleBackColor = true;
+            this.butExportExcel.Click += new System.EventHandler(this.butExportExcel_Click);
+            // 
             // butStartParsing
             // 
+            this.butStartParsing.Cursor = System.Windows.Forms.Cursors.Hand;
             this.butStartParsing.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.butStartParsing.Location = new System.Drawing.Point(177, 243);
             this.butStartParsing.Name = "butStartParsing";
@@ -300,52 +343,8 @@ namespace Small.Tools.WinForm
             this.panel_left.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel_left.Location = new System.Drawing.Point(0, 0);
             this.panel_left.Name = "panel_left";
-            this.panel_left.Size = new System.Drawing.Size(227, 373);
+            this.panel_left.Size = new System.Drawing.Size(278, 373);
             this.panel_left.TabIndex = 1;
-            // 
-            // panel_bottom
-            // 
-            this.panel_bottom.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_bottom.Location = new System.Drawing.Point(0, 373);
-            this.panel_bottom.Name = "panel_bottom";
-            this.panel_bottom.Size = new System.Drawing.Size(707, 53);
-            this.panel_bottom.TabIndex = 0;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(147, 279);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 11;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // textBox1
-            // 
-            this.textBox1.Location = new System.Drawing.Point(41, 281);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(100, 21);
-            this.textBox1.TabIndex = 12;
-            this.textBox1.Text = "960,480";
-            this.textBox1.DoubleClick += new System.EventHandler(this.textBox1_DoubleClick);
-            // 
-            // butExportExcel
-            // 
-            this.butExportExcel.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.butExportExcel.Location = new System.Drawing.Point(56, 243);
-            this.butExportExcel.Name = "butExportExcel";
-            this.butExportExcel.Size = new System.Drawing.Size(115, 23);
-            this.butExportExcel.TabIndex = 3;
-            this.butExportExcel.Text = "导出“Excel”";
-            this.butExportExcel.UseVisualStyleBackColor = true;
-            this.butExportExcel.Click += new System.EventHandler(this.butExportExcel_Click);
-            // 
-            // timer
-            // 
-            this.timer.Interval = 800;
-            this.timer.Tick += new System.EventHandler(this.timer_Tick);
             // 
             // listBox_LogOutput
             // 
@@ -357,18 +356,22 @@ namespace Small.Tools.WinForm
             this.listBox_LogOutput.ItemHeight = 17;
             this.listBox_LogOutput.Location = new System.Drawing.Point(0, 0);
             this.listBox_LogOutput.Name = "listBox_LogOutput";
-            this.listBox_LogOutput.Size = new System.Drawing.Size(225, 371);
+            this.listBox_LogOutput.Size = new System.Drawing.Size(276, 371);
             this.listBox_LogOutput.TabIndex = 0;
             // 
-            // button2
+            // panel_bottom
             // 
-            this.button2.Location = new System.Drawing.Point(95, 321);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 13;
-            this.button2.Text = "button2";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
+            this.panel_bottom.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel_bottom.Location = new System.Drawing.Point(0, 373);
+            this.panel_bottom.Name = "panel_bottom";
+            this.panel_bottom.Size = new System.Drawing.Size(707, 53);
+            this.panel_bottom.TabIndex = 0;
+            // 
+            // timer
+            // 
+            this.timer.Interval = 800;
+            this.timer.Tick += new System.EventHandler(this.timer_Tick);
             // 
             // TaobaoCrawlerSmallTools
             // 
