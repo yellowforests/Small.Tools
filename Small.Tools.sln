@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Small.Tools.Entity", "Small
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Small.Tools.WinForm", "Small.Tools.WinForm\Small.Tools.WinForm.csproj", "{C229BF28-2AB9-4A67-BCCA-7DDCB5AEFAFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Small.Tools.Console", "Small.Tools.Console\Small.Tools.Console.csproj", "{8882E67E-D535-4BC0-A889-43AFCB89ADC2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,14 @@ Global
 		{C229BF28-2AB9-4A67-BCCA-7DDCB5AEFAFF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C229BF28-2AB9-4A67-BCCA-7DDCB5AEFAFF}.Release|x86.ActiveCfg = Release|x86
 		{C229BF28-2AB9-4A67-BCCA-7DDCB5AEFAFF}.Release|x86.Build.0 = Release|x86
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Debug|x86.Build.0 = Debug|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Release|x86.ActiveCfg = Release|Any CPU
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -55,5 +65,6 @@ Global
 		{1C3C4252-7BFB-447A-8283-FE420648C387} = {B0322663-6DC7-4C8D-A18F-05023341C5D3}
 		{CF875C55-405E-4318-9620-D83A78F8202D} = {4028F8D2-DB97-419C-8812-01675CFBA5C9}
 		{C229BF28-2AB9-4A67-BCCA-7DDCB5AEFAFF} = {C30FDE59-4A39-4B3C-9017-03B74D6EF260}
+		{8882E67E-D535-4BC0-A889-43AFCB89ADC2} = {C30FDE59-4A39-4B3C-9017-03B74D6EF260}
 	EndGlobalSection
 EndGlobal

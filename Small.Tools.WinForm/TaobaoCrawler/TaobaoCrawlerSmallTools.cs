@@ -1,15 +1,20 @@
 ﻿using CefSharp;
+using CefSharp.Internals;
 using CefSharp.WinForms;
 using HtmlAgilityPack;
+using mshtml;
+using Small.Tools.Common;
 using Small.Tools.Common.TaobaoCrawler;
 using Small.Tools.Entity.TaobaoCrawlerEntity;
 using Small.Tools.WinForm.TaobaoCrawler;
+using Small.Tools.WinForm.TaobaoCrawler.Common;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -18,7 +23,6 @@ namespace Small.Tools.WinForm
 {
     public partial class TaobaoCrawlerSmallTools : Form
     {
-
         #region private global variable
 
         /// <summary>
@@ -65,22 +69,33 @@ namespace Small.Tools.WinForm
         /// ChromiumWebBrowser
         /// </summary>
         public ChromiumWebBrowser webBrowser;
+
         /// <summary>
         /// 是否加载页尾数据信息
         /// </summary>
         private static bool IsTotalNodes = true;
 
+        /// <summary>
+        /// list | details
+        /// </summary>
+        private static string type = "";
+
         #endregion
+
+        //屏幕分辨率
+        private static int resolvingWidth = 0;
+        private static int resolvingHeigth = 0;
 
         /// <summary>
         /// 无参构造
         /// </summary>
         public TaobaoCrawlerSmallTools()
         {
+            InitializeComponent();
+            #region CefSharp Settings
             CefSettings settings = new CefSettings();
             settings.Locale = "zh-CN";
             Cef.Initialize(settings);
-            InitializeComponent();
 
             CefSharpSettings.LegacyJavascriptBindingEnabled = true;
             webBrowser = new ChromiumWebBrowser("https://ie.icoa.cn/")
@@ -94,25 +109,34 @@ namespace Small.Tools.WinForm
             webBrowser.Size = new System.Drawing.Size(554, 552);
             webBrowser.TabIndex = 0;
             this.panel_right.Controls.Add(webBrowser);
-
             //进入登录地址
             webBrowser.Load(loginAddress);
+            #endregion
+
+            //屏幕分辨率
+            resolvingHeigth = Screen.PrimaryScreen.Bounds.Height;
+            resolvingWidth = Screen.PrimaryScreen.Bounds.Width;
         }
 
         //窗体加载
-        private void TaobaoCrawlerSmallTools_Load(object sender, EventArgs e)
-        {
-
-        }
+        private void TaobaoCrawlerSmallTools_Load(object sender, EventArgs e) { LogWrite("程序正在启动，请稍后"); }
 
         #region private The event
 
-        //根据账号密码登录
-        private void butLogin_Click(object sender, EventArgs e)
+        //窗体关闭
+        private void TaobaoCrawlerSmallTools_FormClosing(object sender, FormClosingEventArgs e)
         {
-            string jsCode = $"document.getElementsByName('fm-login-id')[0].value = '{txtUserName.Text.Trim()}'; document.getElementsByName('fm-login-password')[0].value = '{txtPassWord.Text.Trim()}'";
-            jsCode = jsCode + "; document.getElementsByClassName('fm-button fm-submit password-login')[0].click();";
+            Cef.Shutdown();
+        }
+
+        //根据账号密码登录
+        private async void butLogin_Click(object sender, EventArgs e)
+        {
+            string jsCode = $"document.getElementsByName('fm-login-id')[0].value = '{txtUserName.Text.Trim()}'; document.getElementsByName('fm-login-password')[0].value = '{txtPassWord.Text.Trim()}'; ";
             webBrowser.GetBrowser().MainFrame.ExecuteJavaScriptAsync(jsCode);
+
+            //document.getElementsByClassName('fm-button fm-submit password-login')[0].click();
+            await ClickElement("document.getElementsByClassName('fm-button fm-submit password-login')[0]");
         }
 
         //销量只可输入数据
@@ -126,6 +150,7 @@ namespace Small.Tools.WinForm
                 string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 0);
                 webBrowser.Load(new_searchAddress);
                 currentAddress = new_searchAddress; //当前加载页面地址
+                Delay(1000);
             }
         }
 
@@ -172,19 +197,106 @@ namespace Small.Tools.WinForm
             return htmlValue;
         }
 
+        private string GetHtmlValue()
+        {
+            string htmlValue = string.Empty;
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine("function getHtmlValue() { return document.readyState; }");
+            stringBuilder.AppendLine("getHtmlValue();");
+            var task = webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[0]).EvaluateScriptAsync(stringBuilder.ToString());
+            task.ContinueWith(t =>
+            {
+                if (!t.IsFaulted)
+                {
+                    var response = t.Result;
+                    if (response.Success == true)
+                    {
+                        if (response.Result != null)
+                        {
+                            htmlValue = response.Result.ToString();
+                        }
+                    }
+                }
+            }).Wait();
+            return htmlValue;
+        }
+
+        /// <summary>
+        /// 获取“function”函数返回值
+        /// </summary>
+        /// <param name="stringBuilder">js脚本</param>
+        /// <returns>string</returns>
+        private string GetFunctionResultValue(string stringBuilder)
+        {
+            var htmlValue = string.Empty;
+            var task = webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[0]).EvaluateScriptAsync(stringBuilder.ToString());
+            task.ContinueWith(t =>
+            {
+                if (!t.IsFaulted)
+                {
+                    var response = t.Result;
+                    if (response.Success == true)
+                    {
+                        if (response.Result != null)
+                        {
+                            htmlValue = response.Result.ToString();
+                        }
+                    }
+                }
+            }).Wait();
+            return htmlValue;
+        }
+
+        /// <summary>
+        /// 记录日志
+        /// </summary>
+        /// <param name="message">日志信息</param>
+        private void LogWrite(string message)
+        {
+            this.listBox_LogOutput.BeginInvoke(new Action(() =>
+            {
+                this.listBox_LogOutput.Items.Add($" >{DateTime.Now.ToString("HH:mm:ss ")} {message}...");
+            }));
+        }
+
+        /// <summary>
+        /// 是否需要登录
+        /// </summary>
+        /// <returns>bool</returns>
+        private async Task<bool> WhetherYouNeedToLogin()
+        {
+            var source = await webBrowser.GetSourceAsync();
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(source);
+            var userName = htmlDoc.DocumentNode.SelectNodes("//input[@id='fm-login-id']");
+            var passWord = htmlDoc.DocumentNode.SelectNodes("//input[@id='fm-login-password']");
+            if (userName != null || passWord != null)
+            {
+                //需要登录
+                LogWrite("解析需要登录，请先登录");
+                return true;
+            }
+            return false;
+        }
+
         #endregion
 
         //开始解析数据
-        private void butStartParsing_Click(object sender, EventArgs e)
+        private async void butStartParsing_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtKeyword.Text.Trim()))
-            {
-                MessageBox.Show("请输入需要搜索的关键字。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(txtKeyword.Text.Trim())) { MessageBox.Show("请输入需要搜索的关键字。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
             butStartParsing.Enabled = true; //禁用
             entitySource = new List<TaobaoCrawlerEntity>(); //存储列表页数据信息
+
+            //跳转页面
+            string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 0);
+            webBrowser.Load(new_searchAddress);
+            while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+            await Task.Delay(1500);
+
+            var isLogin = await WhetherYouNeedToLogin();
+            if (isLogin) { MessageBox.Show("请先登录，才可进行解析。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
             //平台
             string platformCode = string.Empty;
@@ -196,8 +308,7 @@ namespace Small.Tools.WinForm
             //解析数量页数，数据量
             int analysisPageSize = 0;
             int analysisCount = 0;
-            if (string.IsNullOrWhiteSpace(txtAnlyticNumber.Text.Trim())
-                || Convert.ToInt32(txtAnlyticNumber.Text.Trim()) == 0)
+            if (string.IsNullOrWhiteSpace(txtAnlyticNumber.Text.Trim()) || Convert.ToInt32(txtAnlyticNumber.Text.Trim()) == 0)
             {
                 analysisPageSize = 0;
                 analysisCount = lastPageCount;
@@ -213,12 +324,21 @@ namespace Small.Tools.WinForm
                 analysisCount = (Convert.ToInt32(txtAnlyticNumber.Text.Trim()) - 1) * 44;
             }
 
-            //循环解析列表数据
-            for (int i = 0; i <= analysisCount; i = i + 44)
+            LogWrite("正在解析第“1”页数据信息");
+            await AnalysisListPage();
+
+            for (int i = 2; i <= Convert.ToInt32(txtAnlyticNumber.Text.Trim()); i++)
             {
-                if (i > 0) IsTotalNodes = false;
-                AnalysisListPage(i, IsTotalNodes);
+                string next_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 2 * 44);
+                webBrowser.Load(next_searchAddress);
+                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+                await Task.Delay(1500);
+                await NextPage();
+                LogWrite($"正在解析第“{i}”页数据信息");
             }
+
+            //启动定时器
+            timer.Enabled = false;
 
             #region 筛选数据
 
@@ -243,238 +363,186 @@ namespace Small.Tools.WinForm
             #endregion
 
             Delay(2000);
-            AnalysisDetails(entitySource);
         }
 
         /// <summary>
         /// 解析列表页面“Html”
         /// </summary>
-        /// <param name="pageLastNumber">跳转条数</param>
-        /// <param name="isTotalNodes">是否加载当前页数以及总行数</param>
         /// <returns>bool</returns>
-        private bool AnalysisListPage(int pageLastNumber, bool isTotalNodes = false)
+        private async Task AnalysisListPage()
         {
-            bool result = true;
-            string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), pageLastNumber);
-            webBrowser.Load(new_searchAddress);
-            currentAddress = new_searchAddress; //当前加载页面地址
-            Delay(2000);
-
-            HtmlAgilityPack.HtmlDocument document = new HtmlAgilityPack.HtmlDocument();
-            var bodyHtml = GetHtml();//this.webBrowser.GetBrows;
-            if (string.IsNullOrWhiteSpace(bodyHtml))
+            try
             {
-                MessageBox.Show("暂无解析到相关商品信息，请重试。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                result = false;
-            }
-            document.LoadHtml(bodyHtml);
+                //启动定时器
+                timer.Enabled = true;
+                await Task.Delay(1200);
 
-            //解析相关商品列表  //<div class="item J_MouserOnverReq  "
-            //HtmlNodeCollection goodsNodes = document.DocumentNode.SelectNodes("//div[@class='item J_MouserOnverReq  '] ");
-            HtmlNodeCollection goodsNodes = document.DocumentNode.SelectNodes("//div[starts-with(@class,'item J_MouserOnverReq')]");
-            if (isTotalNodes)   //是否加载页数
-            {
+                var source = await webBrowser.GetSourceAsync();
+                if (string.IsNullOrWhiteSpace(source)) { MessageBox.Show("暂无解析到页面信息，请重试。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+                var document = new HtmlAgilityPack.HtmlDocument();
+                document.LoadHtml(source);
+                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+
+                //滑动验证码
+                if (await IsDialog())
+                {
+                    button1_Click(null, null);
+                    await Task.Delay(2000);
+                }
+
+                //解析相关商品列表  //<div class="item J_MouserOnverReq"
+                HtmlNodeCollection goodsNodes = document.DocumentNode.SelectNodes("//div[starts-with(@class,'item J_MouserOnverReq')]");
+                if (goodsNodes == null) goodsNodes = document.DocumentNode.SelectNodes("//div[@class='item J_MouserOnverReq']");
+                if (goodsNodes == null) { MessageBox.Show("程序解析“Html”错误“//div[starts-with(@class,'item J_MouserOnverReq')]”，请联系作者或者重试。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
                 //总页数
-                HtmlNodeCollection totalNodes = document.DocumentNode.SelectNodes("//div[@class='total'] ");
+                HtmlNodeCollection totalNodes = document.DocumentNode.SelectNodes("//div[@class='total']");
                 if (totalNodes != null)
                     if (totalNodes.Count() > 0)
                         totalValue = Convert.ToInt32(totalNodes[0].InnerText.Replace(@"\n", "").Replace("，", "").Replace("共", "").Replace("页", "").Trim());
                 var pageNumber = totalValue - 1;
                 //最后一页商品跳转数
                 lastPageCount = pageNumber * pageSize;
-            }
 
-            if (goodsNodes != null)
-            {
                 foreach (var node in goodsNodes)
                 {
-                    TaobaoCrawlerEntity entity = new TaobaoCrawlerEntity();
-                    HtmlAgilityPack.HtmlDocument nodeDocument = new HtmlAgilityPack.HtmlDocument();
-                    var htmlNode = node.OuterHtml;
-                    nodeDocument.LoadHtml(htmlNode);
+                    TaobaoCrawlerEntity productEntity = new TaobaoCrawlerEntity();
+                    HtmlAgilityPack.HtmlDocument node_document = new HtmlAgilityPack.HtmlDocument();
+                    node_document.LoadHtml(node.OuterHtml);
+                    #region 解析“Html”
 
-                    #region //div[@class='pic']
-                    HtmlNodeCollection productSearchListNameNodes = nodeDocument.DocumentNode.SelectNodes("//div[@class='pic']");
-                    if (productSearchListNameNodes != null)
+                    #region 列表图片(商品编号 | 商品金额 | 商品详细页地址 | 商品列表页图片地址 | 商品搜索列表页显示的名称) //div[@class='pic']
+                    var product_Pic_Nodes = node_document.DocumentNode.SelectNodes("//div[@class='pic']");
+                    if (product_Pic_Nodes != null)
                     {
-                        //a 标签
-                        var node_a = productSearchListNameNodes[0].SelectSingleNode("//a");
-                        if (node != null)
+                        var product_Pic_a_node = product_Pic_Nodes[0].SelectSingleNode("//a");
+                        if (product_Pic_a_node != null)
                         {
-                            //商品编号 trace-nid
-                            string productId = node_a.GetAttributeValue("trace-nid", "");
-                            //商品金额 trace-price
-                            string productMoney = node_a.GetAttributeValue("trace-price", "");
+                            //商品编号 - trace-nid
+                            productEntity.ProductId = product_Pic_a_node.GetAttributeValue("trace-nid", "");
+                            //商品金额 - trace-price
+                            productEntity.ProductMoney = product_Pic_a_node.GetAttributeValue("trace-price", "");
                             //商品详细页地址 href
-                            string productDetailsAddress = node_a.GetAttributeValue("href", "");
-                            productDetailsAddress = "https:" + productDetailsAddress.Replace("amp;", "");
+                            string productDetailsAddress = product_Pic_a_node.GetAttributeValue("href", "");
+                            productEntity.ProductDetailsAddress = "https:" + productDetailsAddress.Replace("amp;", "");
 
                             //img 标签
-                            var node_img = node_a.SelectSingleNode("//img");
-                            if (node_img != null)
+                            var product_Pic_a_img_node = product_Pic_a_node.SelectSingleNode("//img");
+                            if (product_Pic_a_img_node != null)
                             {
                                 //商品列表页图片地址 data-src
-                                var productSearchListImgAddress = node_img.GetAttributeValue("data-src", "");
-                                productSearchListImgAddress = "https:" + productSearchListImgAddress;
+                                var productSearchListImgAddress = product_Pic_a_img_node.GetAttributeValue("data-src", "");
+                                productEntity.ProductSearchListImgAddress = "https:" + productSearchListImgAddress;
 
                                 //商品搜索列表页显示的名称
-                                var productSearchListName = node_img.GetAttributeValue("alt", "");
-                                entity.ProductSearchListName = productSearchListName;
-                                entity.ProductSearchListImgAddress = productSearchListImgAddress;
-                                entity.ProductDetailsAddress = productDetailsAddress;
-                                entity.ProductMoney = productMoney;
-                                entity.ProductId = productId;
+                                productEntity.ProductSearchListName = product_Pic_a_img_node.GetAttributeValue("alt", "");
                             }
                         }
-
-                        if (string.IsNullOrWhiteSpace(entity.ProductSearchListName)
-                            || string.IsNullOrWhiteSpace(entity.ProductSearchListImgAddress)
-                            || string.IsNullOrWhiteSpace(entity.ProductSearchListImgAddress)
-                            || string.IsNullOrWhiteSpace(entity.ProductDetailsAddress)
-                            || string.IsNullOrWhiteSpace(entity.ProductMoney)
-                              || string.IsNullOrWhiteSpace(entity.ProductId))
-                        {
-                            MessageBox.Show("程序解析“Html”错误“//div[@class='pic']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            result = false;
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("程序解析“Html”错误“//div[@class='pic']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        result = false;
-                    }
-                    #endregion
-                    #region //div[@class='row row-1 g-clearfix']
-                    HtmlNodeCollection productMoneyAndSellNodes = nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-1 g-clearfix'] ");
-                    if (productMoneyAndSellNodes != null)
-                    {
-                        //销量 div class="deal-cnt">
-                        if (productMoneyAndSellNodes[0].SelectSingleNode("//div[@class='deal-cnt']") != null)
-                        {
-                            var productSellNumber = productMoneyAndSellNodes[0].SelectSingleNode("//div[@class='deal-cnt']")?.InnerText;
-                            productSellNumber = productSellNumber.Replace("人", "").Replace("收货", "").Replace("付款", "");
-                            entity.ProductSellNumber = productSellNumber;
-                        }
-
-                        //金额
-                        if (productMoneyAndSellNodes[0].SelectSingleNode("//strong") != null)
-                        {
-                            var new_ProductMoney = productMoneyAndSellNodes[0].SelectSingleNode("//strong")?.InnerText;
-                            if (Convert.ToDouble(entity.ProductMoney) != Convert.ToDouble(new_ProductMoney))
-                                entity.ProductMoney = new_ProductMoney;
-                        }
-
-                        if (string.IsNullOrWhiteSpace(entity.ProductMoney)
-                            || string.IsNullOrWhiteSpace(entity.ProductSellNumber))
-                        {
-                            MessageBox.Show("程序解析“Html”错误“//div[@class='row row-1 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            result = false;
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("程序解析“Html”错误“//div[@class='row row-1 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        result = false;
                     }
 
                     #endregion
-                    #region //div[@class='row row-2 title']
-                    HtmlNodeCollection productNameNodes = nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-2 title'] ");
-                    if (productNameNodes != null)
+                    #region 价格，销量 //div[@class='row row-1 g-clearfix']
+                    var productMoneyAndSell_Nodes = node_document.DocumentNode.SelectNodes("//div[@class='row row-1 g-clearfix'] ");
+                    if (productMoneyAndSell_Nodes != null)
+                    {
+                        //销量 //div[@class='deal-cnt']
+                        if (productMoneyAndSell_Nodes[0]?.SelectSingleNode("//div[@class='deal-cnt']") != null)
+                        {
+                            var productSellNumber = productMoneyAndSell_Nodes[0].SelectSingleNode("//div[@class='deal-cnt']")?.InnerText;
+                            productEntity.ProductSellNumber = productSellNumber.Replace("人", "").Replace("收货", "").Replace("付款", "");
+                        }
+
+                        //金额(二次验证金额) //strong
+                        if (productMoneyAndSell_Nodes[0]?.SelectSingleNode("//strong") != null)
+                        {
+                            var new_ProductMoney = productMoneyAndSell_Nodes[0].SelectSingleNode("//strong")?.InnerText;
+                            if (Convert.ToDouble(productEntity.ProductMoney) != Convert.ToDouble(new_ProductMoney))
+                                productEntity.ProductMoney = new_ProductMoney;
+                        }
+                    }
+
+                    #endregion
+                    #region 商品显示的名称 //div[@class='row row-2 title']
+                    var productName_Nodes = node_document.DocumentNode.SelectNodes("//div[@class='row row-2 title'] ");
+                    if (productName_Nodes != null)
                     {
                         //商品在详情显示的名称
-                        entity.ProductDetailsPageName = productNameNodes[0].InnerText.Replace("\n", "").Trim();
-                        if (entity.ProductDetailsPageName != nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-2 title']//a")[0].InnerText.Replace("\n", "").Trim())
-                            entity.ProductDetailsPageName = nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-2 title']//a")[0].InnerText.Replace("\n", "").Trim();
-                    }
-                    else
-                    {
-                        MessageBox.Show("程序解析“Html”错误“//div[@class='row row-2 title']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        result = false;
+                        productEntity.ProductDetailsPageName = productName_Nodes[0].InnerText.Replace("\n", "").Trim();
+                        if (productEntity.ProductDetailsPageName != node_document.DocumentNode.SelectNodes("//div[@class='row row-2 title']//a")[0].InnerText.Replace("\n", "").Trim())
+                            productEntity.ProductDetailsPageName = node_document.DocumentNode.SelectNodes("//div[@class='row row-2 title']//a")[0].InnerText.Replace("\n", "").Trim();
                     }
                     #endregion
-                    #region //div[@class='row row-3 g-clearfix']
-                    HtmlNodeCollection theStoreNodes = nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-3 g-clearfix'] ");
-                    if (theStoreNodes != null)
+                    #region 店铺名称，地址，归属地 //div[@class='row row-3 g-clearfix']
+                    var storeInformation_Nodes = node_document.DocumentNode.SelectNodes("//div[@class='row row-3 g-clearfix'] ");
+                    if (storeInformation_Nodes != null)
                     {
-                        //店铺归属地址
-                        if (theStoreNodes[0].SelectSingleNode("//div[@class='location'] ") != null)
-                            entity.StoreAddress = theStoreNodes[0].SelectSingleNode("//div[@class='location'] ").InnerText;
-                        //店铺地址 URL
-                        if (theStoreNodes[0].SelectSingleNode("//div[@class='shop']//a") != null)
-                            entity.ShopNameAddress = "https:" + theStoreNodes[0].SelectSingleNode("//div[@class='shop']//a").GetAttributeValue("href", "");
-                        //店铺名称（掌柜）
-                        if (theStoreNodes[0].SelectNodes("//div[@class='shop']//a//span") != null)
-                            if (theStoreNodes[0].SelectNodes("//div[@class='shop']//a//span").Count() > 0)
-                                entity.ShopName = theStoreNodes[0].SelectNodes("//div[@class='shop']//a//span")
-                                    [theStoreNodes[0].SelectNodes("//div[@class='shop']//a//span").Count() - 1].InnerText;
+                        //店铺归属地址 //div[@class='location']
+                        if (storeInformation_Nodes[0]?.SelectSingleNode("//div[@class='location'] ") != null)
+                            productEntity.StoreAddress = storeInformation_Nodes[0].SelectSingleNode("//div[@class='location'] ").InnerText;
 
-                        if (string.IsNullOrWhiteSpace(entity.StoreAddress)
-                            || string.IsNullOrWhiteSpace(entity.ShopNameAddress)
-                            || string.IsNullOrWhiteSpace(entity.ShopName))
-                        {
-                            MessageBox.Show("程序解析“Html”错误“//div[@class='row row-3 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            result = false;
-                        }
+                        //店铺地址“Url” //div[@class='shop']//a
+                        if (storeInformation_Nodes[0].SelectSingleNode("//div[@class='shop']//a") != null)
+                            productEntity.ShopNameAddress = "https:" + storeInformation_Nodes[0].SelectSingleNode("//div[@class='shop']//a").GetAttributeValue("href", "");
+
+                        //店铺名称“掌柜” //div[@class='shop']//a//span
+                        if (storeInformation_Nodes[0].SelectNodes("//div[@class='shop']//a//span") != null)
+                            if (storeInformation_Nodes[0].SelectNodes("//div[@class='shop']//a//span").Count() > 0)
+                                productEntity.ShopName = storeInformation_Nodes[0].SelectNodes("//div[@class='shop']//a//span")
+                                    [storeInformation_Nodes[0].SelectNodes("//div[@class='shop']//a//span").Count() - 1].InnerText;
                     }
-                    else
-                    {
-                        MessageBox.Show("程序解析“Html”错误“//div[@class='row row-3 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        result = false;
-                    }
+
                     #endregion
-                    #region //div[@class='row row-4 g-clearfix']
-                    //所属平台
-                    HtmlNodeCollection platformCodeNodes = nodeDocument.DocumentNode.SelectNodes("//div[@class='row row-4 g-clearfix']//div//ul");
-                    if (platformCodeNodes != null)
+                    #region 所属平台 //div[@class='row row-4 g-clearfix']
+                    HtmlNodeCollection platformCode_Nodes = node_document.DocumentNode.SelectNodes("//div[@class='row row-4 g-clearfix']//div//ul");
+                    if (platformCode_Nodes != null)
                     {
-                        if (platformCodeNodes[0].SelectNodes("//li//a") != null)
+                        if (platformCode_Nodes[0]?.SelectNodes("//li//a") != null)
                         {
-                            var platformCodeLiNodesHtml = platformCodeNodes[0].SelectNodes("//li//a")[0].OuterHtml;
+                            var platformCodeLiNodesHtml = platformCode_Nodes[0].SelectNodes("//li//a")[0].OuterHtml;
                             if (platformCodeLiNodesHtml.IndexOf("taobao") != -1)
                             {
-                                entity.PlatformCode = "taobao";
-                                entity.PlatformName = "淘宝";
+                                productEntity.PlatformCode = "taobao";
+                                productEntity.PlatformName = "淘宝";
                             }
                             else if (platformCodeLiNodesHtml.IndexOf("tmall") != -1)
                             {
-                                entity.PlatformCode = "tmall";
-                                entity.PlatformName = "天猫";
+                                productEntity.PlatformCode = "tmall";
+                                productEntity.PlatformName = "天猫";
                             }
                         }
                         else
                         {
-                            entity.PlatformCode = "taobao";
-                            entity.PlatformName = "淘宝";
+                            productEntity.PlatformCode = "taobao";
+                            productEntity.PlatformName = "淘宝";
                         }
-
-                        if (string.IsNullOrWhiteSpace(entity.PlatformName)
-                            || string.IsNullOrWhiteSpace(entity.PlatformCode))
-                        {
-                            MessageBox.Show("程序解析“Html”错误“//div[@class='row row-4 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            result = false;
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("程序解析“Html”错误“//div[@class='row row-4 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        result = false;
                     }
 
                     #endregion
 
-                    if (result == false) return result;  //中途有解析错误
+                    #endregion
 
-                    entitySource.Add(entity);
+                    //当前页面地址
+                    var currentAddress = webBrowser.Address;
+
+                    #region 解析详情页
+                    if (!string.IsNullOrWhiteSpace(productEntity.ProductDetailsAddress))
+                        webBrowser.Load(productEntity.ProductDetailsAddress);
+
+                    while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+
+                    var detailsInfo = await AnalysisDetails(productEntity, currentAddress);
+                    if (detailsInfo.Item1 != null && detailsInfo.Item2 == true)
+                        productEntity.details = detailsInfo.Item1;
+                    #endregion
+
+                    entitySource.Add(productEntity);
                 }
-                result = true;  //解析正确完成
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("程序解析“Html”错误“//div[@class='row row-4 g-clearfix']”，请联系作者。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                result = false;
+                MessageBox.Show("解析错误，error:" + ex.Message, "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return;
             }
-            return result;
         }
 
         /// <summary>
@@ -482,116 +550,396 @@ namespace Small.Tools.WinForm
         /// </summary>
         /// <param name="entity">数据信息</param>
         /// <returns>bool</returns>
-        private bool AnalysisDetails(List<TaobaoCrawlerEntity> entitys)
+        private async Task<Tuple<TaobaoCrawlerDetails, bool>> AnalysisDetails(TaobaoCrawlerEntity entity, string currentAddress)
         {
-            bool result = true;
-            if (entitys?.Count() > 0)
+            await Task.Delay(1200);
+            var taobaoCrawlerDetails = new TaobaoCrawlerDetails();
+            if (entity != null)
             {
-                foreach (var entity in entitys)
+                var source = await webBrowser.GetSourceAsync();
+                if (string.IsNullOrWhiteSpace(source))
                 {
-                    webBrowser.Load(entity.ProductDetailsAddress);
-                    var details = new TaobaoCrawlerDetails();
-                    details.PreferentialInfo = new List<PreferentialInfo>();
+                    LogWrite($"“{entity.ProductDetailsAddress}”未解析到相关详细页信息");
+                    return new Tuple<TaobaoCrawlerDetails, bool>(null, false);
+                }
 
-                    Delay(5000);
-                    //开始解析详情页
-                    HtmlAgilityPack.HtmlDocument document = new HtmlAgilityPack.HtmlDocument();
-                    string htmlValue = GetHtml();
-                    document.LoadHtml(htmlValue);
+                var document = new HtmlAgilityPack.HtmlDocument();
+                document.LoadHtml(source);
+                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
 
-                    #region //div[@class='tb-counter-bd']
-                    //累计评论 | 交易成功(淘宝) //div[@class='tb-counter-bd']
-                    HtmlNodeCollection evaluationOrTradingNodes = document.DocumentNode.SelectNodes("//div[@class='tb-counter-bd']");
-                    if (evaluationOrTradingNodes != null)
+                //验证码识别滑动
+                if (await IsDialog())
+                {
+                    button1_Click(null, null);
+                    await Task.Delay(2000);
+                }
+
+                #region 解析“Html”
+
+                #region 累计评论，交易成功(淘宝) //div[@class='tb-counter-bd']
+                var evaluationOrTrading_Nodes = document.DocumentNode.SelectNodes("//div[@class='tb-counter-bd']");
+                if (evaluationOrTrading_Nodes != null)
+                {
+                    //累计评论 //div[@class='tb-rate-counter']//a//strong[@id='J_RateCounter']
+                    var evaluation = evaluationOrTrading_Nodes[0]?.SelectSingleNode("//div[@class='tb-rate-counter']//a//strong[@id='J_RateCounter']");
+                    if (evaluation != null)
+                        taobaoCrawlerDetails.CumulativeCommentsNum = evaluation?.InnerText;
+                    //交易成功 //div[@class='tb-sell-counter']//a//strong[@id='J_SellCounter']
+                    var trading = evaluationOrTrading_Nodes[0]?.SelectSingleNode("//div[@class='tb-sell-counter']//a//strong[@id='J_SellCounter']");
+                    if (trading != null)
+                        taobaoCrawlerDetails.TransactionSuccessNum = trading?.InnerText;
+                }
+                #endregion
+                #region 价格 //div[@class='tb-promo-item-bd']
+                var commodityPrices_Nodes = document.DocumentNode.SelectNodes("//div[@class='tb-promo-item-bd']");
+                if (commodityPrices_Nodes == null)
+                    commodityPrices_Nodes = document.DocumentNode.SelectNodes("//div[@class='tb-property-cont']");
+                if (commodityPrices_Nodes != null)
+                {
+                    var prices = commodityPrices_Nodes[0]?.SelectSingleNode("//strong[@class='tb-promo-price']//em[@id='J_PromoPriceNum']");
+                    if (prices == null)
+                        prices = commodityPrices_Nodes[0]?.SelectSingleNode("//strong[@id='J_StrPrice']//em[@class='tb-rmb-num']");
+                    if (prices != null)
+                        taobaoCrawlerDetails.CommodityPrices = prices?.InnerText;
+                }
+
+                #endregion
+                #region 收藏人气 //li[@class='tb-social-fav']
+                var collectTheSentiment_Nodes = document.DocumentNode.SelectNodes("//li[@class='tb-social-fav']");
+                if (collectTheSentiment_Nodes != null)
+                {
+                    taobaoCrawlerDetails.CollectTheSentiment = collectTheSentiment_Nodes[0]?.SelectSingleNode("//a[@class='J_TDialogTrigger']//em")?.InnerText;
+                    taobaoCrawlerDetails.CollectTheSentiment = taobaoCrawlerDetails.CollectTheSentiment.Replace("(", "").Replace("人气)", "");
+                }
+
+                #endregion
+
+                #region 优惠信息 //div[@class='tb-other-discount']
+                List<PreferentialInfo> preferentialList = new List<PreferentialInfo>();
+                //div[@class='tb-other-discount']
+                var preferentialInfo_Nodes = document.DocumentNode.SelectNodes("//div[@class='tb-other-discount']");
+                if (preferentialInfo_Nodes != null)
+                {
+                    var preferentialOne = preferentialInfo_Nodes[0]?.SelectNodes("//div[starts-with(@class,'tb-other-discount-content')]");
+                    if (preferentialOne != null)
                     {
-                        //累计评论  <strong id="J_RateCounter">
-                        var evaluation = evaluationOrTradingNodes[0].SelectSingleNode("//div[@class='tb-rate-counter']//a//strong[@id='J_RateCounter']");
-                        if (evaluation != null)
+                        foreach (var preferential in preferentialOne)
                         {
-                            details.CumulativeCommentsNum = evaluation.InnerText;
-                        }
-                        //交易成功  <strong id="J_SellCounter">
-                        var trading = evaluationOrTradingNodes[0].SelectSingleNode("//div[@class='tb-sell-counter']//a//strong[@id='J_SellCounter']");
-                        if (trading != null)
-                        {
-                            details.TransactionSuccessNum = trading.InnerText;
-                        }
-                    }
-                    #endregion
-                    #region //div[@class='tb-promo-item-bd']
-
-                    //价格
-                    var commodityPricesNodes = document.DocumentNode.SelectNodes("//div[@class='tb-promo-item-bd']");
-                    if (commodityPricesNodes != null)
-                    {
-                        var prices = commodityPricesNodes[0].SelectSingleNode("//strong[@class='tb-promo-price']//em[@id='J_PromoPriceNum']");
-                        if (prices != null)
-                        {
-                            details.CommodityPrices = prices.InnerText;
-                        }
-                    }
-
-                    #endregion
-                    #region //div[@class='tb-other-discount']
-                    //优惠
-                    ////div[starts-with(@class,'item J_MouserOnverReq')]
-                    var preferentialInfoNodes = document.DocumentNode.SelectNodes("//div[@class='tb-other-discount']");
-                    if (preferentialInfoNodes != null)
-                    {
-                        var preferentialOne = preferentialInfoNodes[0].SelectNodes("//div[starts-with(@class,'tb-other-discount-content')]");
-                        if (preferentialOne != null)
-                        {
-                            foreach (var preferential in preferentialOne)
+                            //div[@class='tb-coupon']
+                            var imgNodes = preferential.SelectNodes("//div[@class='tb-coupon']");
+                            if (imgNodes != null)   //是否有优惠券
                             {
-                                //<div class="tb-coupon">
-                                var imgNodes = preferential.SelectNodes("//div[@class='tb-coupon']");
                                 foreach (var img in imgNodes)
                                 {
                                     //优惠券icon | 优惠券内容信息
                                     if (img.SelectSingleNode("//img[@class='tb-coupon-icon']") != null)
                                     {
-                                        details.PreferentialInfo.Add(new PreferentialInfo()
+                                        var preferentialContent = string.Empty;
+                                        if (!string.IsNullOrWhiteSpace(img.InnerText.Trim()))
+                                        {
+                                            preferentialContent = img.InnerText.Replace("\n", "").Replace(" ", "");
+                                            if (img.InnerText.Replace("\n", "").Replace(" ", "").LastIndexOf("领取") != -1)
+                                                preferentialContent = img.InnerText.Replace("\n", "").Replace(" ", "").Substring(0, img.InnerText.Replace("\n", "").Replace(" ", "").LastIndexOf("领取"));
+                                        }
+                                        preferentialList.Add(new PreferentialInfo()
                                         {
                                             PreferentialIMGAddress = "https:" + img.SelectSingleNode("//img[@class='tb-coupon-icon']").GetAttributeValue("src", ""),
-                                            PreferentialContent = img.InnerText.Replace("\n", "").Replace(" ", "").Substring(0, img.InnerText.Replace("\n", "").Replace(" ", "").LastIndexOf("领取"))
+                                            PreferentialContent = preferentialContent
                                         });
                                     }
                                 }
                             }
                         }
                     }
-                    #endregion
-
                 }
+                #endregion
+
+                var new_preferential_source = preferentialList.GroupBy(x =>
+                 new { x.PreferentialIMGAddress, x.PreferentialContent }).Select(c => new
+                 {
+                     Id = c.Key,
+                     ListValue = c.ToList()
+                 });
+                foreach (var info in new_preferential_source)
+                {
+                    taobaoCrawlerDetails.PreferentialInfo = info.ListValue.ToList<PreferentialInfo>();
+                }
+                #endregion
             }
 
-            return result;
+            webBrowser.Load(currentAddress);
+            while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+            return new Tuple<TaobaoCrawlerDetails, bool>(taobaoCrawlerDetails, true);
         }
 
-        private void TaobaoCrawlerSmallTools_FormClosing(object sender, FormClosingEventArgs e)
+        /// <summary>
+        /// 是否有模态框验证码
+        /// </summary>
+        /// <param name="htmlDoc">HtmlDocument</param>
+        /// <returns>bool</returns>
+        private async Task<bool> IsDialog()
         {
-            Cef.Shutdown();
-        }
-    }
+            var source = await webBrowser.GetSourceAsync();
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(source);
+            while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
 
-    /// <summary>
-    /// 继承“WebBrowser”，重写方法“AttachInterfaces | DetachInterfaces”
-    /// 防止弹窗报错。
-    /// </summary>
-    public class SmallToolsWebBrowser : WebBrowser
-    {
-        SHDocVw.WebBrowser iweb;
-        protected override void AttachInterfaces(object nativeActiveXObject)
-        {
-            base.AttachInterfaces(nativeActiveXObject);
-            iweb = (SHDocVw.WebBrowser)nativeActiveXObject;
-            iweb.Silent = true;
+            //验证模态框
+            var dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
+            if (dialog_nodes == null)
+                dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
+            if (dialog_nodes == null)
+                dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
+
+            if (dialog_nodes == null)
+            {
+                var htmlBody = GetHtml();
+                var htmlBodyDoc = new HtmlAgilityPack.HtmlDocument();
+                htmlBodyDoc.LoadHtml(htmlBody);
+                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+
+                dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
+                if (dialog_nodes == null)
+                    dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
+                if (dialog_nodes == null)
+                    dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
+            }
+
+            if (dialog_nodes != null)
+            {
+                try
+                {
+                    await GetCaptchaPosition();
+                    dialog_nodes.SetAttributeValue("style", "display: none; ");
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
-        protected override void DetachInterfaces()
+
+        #region private task methods
+
+        /// <summary>
+        /// 模拟点击指定选择符DOM元素
+        /// </summary>
+        /// <param name="selector">js</param>
+        private async Task ClickElement(string selector)
         {
-            base.DetachInterfaces();
-            iweb = null;
+            var sSel = $"{selector}.getBoundingClientRect()";
+            var t = await webBrowser.EvaluateScriptAsync(sSel);
+            if (t.Result != null)
+            {
+                var expandoDic = t.Result as IDictionary<string, object>;
+                if ((null != expandoDic) && expandoDic.ContainsKey("left") && expandoDic.ContainsKey("top"))
+                {
+                    var left = Convert.ToInt32(expandoDic["left"]) + 5;
+                    var top = Convert.ToInt32(expandoDic["top"]) + 5;
+
+                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, false, 1, CefEventFlags.None);
+                    webBrowser.GetBrowserHost().SendMouseClickEvent(left, top, MouseButtonType.Left, true, 1, CefEventFlags.None);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 页面加载异步
+        /// </summary>
+        /// <param name="browser">CefSharp WebBrowser</param>
+        /// <returns>Task</returns>
+        public Task LoadPageAsync(IWebBrowser browser)
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            EventHandler<LoadingStateChangedEventArgs> handler = null;
+            handler = (sender, args) =>
+            {
+                if (!args.IsLoading)
+                {
+                    browser.LoadingStateChanged -= handler;
+                    taskCompletionSource.TrySetResultAsync(true);
+                }
+            };
+
+            browser.LoadingStateChanged += handler;
+            return taskCompletionSource.Task;
+        }
+
+        /// <summary>
+        /// 点击下一页
+        /// </summary>
+        /// <returns>bool</returns>
+        public async Task<bool> NextPage()
+        {
+            var source = await webBrowser.GetSourceAsync();
+            var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.LoadHtml(source);
+            await Task.Delay(2000);
+            var buttonNext = htmlDoc.DocumentNode.Descendants().FirstOrDefault();
+            if (buttonNext != null)
+            {
+                await ClickElement("document.querySelectorAll('[trace=srp_bottom_pagedown]')[0]");
+                await AnalysisListPage();
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        private async void button1_Click(object sender, EventArgs e)
+        {
+            var cc = textBox1.Text;
+
+            int int_X = Convert.ToInt32(cc.Split(',')[0]), int_Y = Convert.ToInt32(cc.Split(',')[1]), move_long = 100;
+            //Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+            //    (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_ABSOLUTE | Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+                (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+
+            await Task.Delay(2000);
+            Win32Mouse.MoveMouseToPoint(new Point()
+            {
+                X = (int_X + 100) * 65536 / 1920,
+                Y = 480
+            });
+
+            await Task.Delay(3000);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTUP, (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+        }
+
+        /// <summary>
+        /// 获取验证码的位置
+        /// </summary>
+        /// <returns></returns>
+        private async Task GetCaptchaPosition()
+        {
+            string jsOnClick = @"
+                document.getElementById('nc_1_n1z').onclick = function (event) {
+                    event = event || window.event;
+                    alert (event.clientX + ',' + event.clientY);
+                    return event.clientX + ',' + event.clientY;
+                }";
+            var a = await webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[0]).EvaluateScriptAsync(jsOnClick.ToString());
+            await Task.Delay(3000);
+            JavascriptResponse a1 = null;
+            JavascriptResponse a2 = null;
+            JavascriptResponse a3 = null;
+            if (a.Result == null)
+                a1 = await webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[1]).EvaluateScriptAsync(jsOnClick.ToString());
+            else return;
+            if (a1.Result == null)
+                a2 = await webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[2]).EvaluateScriptAsync(jsOnClick.ToString());
+            else return;
+            if (a1.Result == null)
+                a3 = await webBrowser.GetBrowser().GetFrame(webBrowser.GetBrowser().GetFrameNames()[3]).EvaluateScriptAsync(jsOnClick.ToString());
+            else return;
+
+        }
+
+        //导出“Excel”
+        private void butExportExcel_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog dialog = new FolderBrowserDialog();
+            dialog.Description = "请选择文件保存路径";
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                string fileName = $"{DateTime.Now.ToString("yyyyMMddHHmmss")}_{txtKeyword.Text}爬虫数据信息.xlsx";
+                string foldPath = dialog.SelectedPath + $"\\{fileName}";
+                if (entitySource?.Count() > 0)
+                {
+                    List<TaobaoCrawlerEntityToDataTable> dataTableInfos = new List<TaobaoCrawlerEntityToDataTable>();
+                    foreach (var info in entitySource)
+                    {
+                        var PreferentialContentValue = string.Empty;
+                        if (info.details?.PreferentialInfo != null)
+                        {
+                            var arry = (from p in info.details?.PreferentialInfo
+                                        select p.PreferentialContent).ToList().ToArray();
+
+                            PreferentialContentValue = System.String.Join(",", arry);
+                        }
+                        dataTableInfos.Add(new TaobaoCrawlerEntityToDataTable()
+                        {
+                            CollectTheSentiment = info.details?.CollectTheSentiment,
+                            CommodityPrices = info.details?.CommodityPrices,
+                            CumulativeCommentsNum = info.details?.CumulativeCommentsNum,
+                            TransactionSuccessNum = info.details?.TransactionSuccessNum,
+                            PreferentialContent = PreferentialContentValue,
+                            PlatformCode = info.PlatformCode,
+                            PlatformName = info.PlatformName,
+
+                            ProductDetailsAddress = info.ProductDetailsAddress,
+                            ProductDetailsPageName = info.ProductDetailsPageName,
+                            ProductId = info.ProductId,
+                            ProductMoney = info.ProductMoney,
+                            ProductSearchListImgAddress = info.ProductSearchListImgAddress,
+                            ProductSearchListName = info.ProductSearchListName,
+                            ProductSellNumber = info.ProductSellNumber,
+                            ShopName = info.ShopName,
+                            ShopNameAddress = info.ShopNameAddress,
+                            StoreAddress = info.StoreAddress
+                        });
+                    }
+
+                    var dataTable = DataTableCommon.ListToDataTable<TaobaoCrawlerEntityToDataTable>(dataTableInfos);
+                }
+            }
+        }
+
+        private void textBox1_DoubleClick(object sender, EventArgs e)
+        {
+            webBrowser.ShowDevTools();
+        }
+
+        private async void timer_Tick(object sender, EventArgs e)
+        {
+            var cc = textBox1.Text;
+
+            int int_X = Convert.ToInt32(cc.Split(',')[0]), int_Y = Convert.ToInt32(cc.Split(',')[1]), move_long = 100;
+            //Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+            //    (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_ABSOLUTE | Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+                (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+
+            await Task.Delay(2000);
+            Win32Mouse.MoveMouseToPoint(new Point()
+            {
+                X = (int_X + 100) * 65536 / 1920,
+                Y = 480
+            });
+
+            await Task.Delay(3000);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTUP, (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+        }
+
+        private async void button2_Click(object sender, EventArgs e)
+        {
+            var cc = textBox1.Text;
+
+            int int_X = Convert.ToInt32(cc.Split(',')[0]), int_Y = Convert.ToInt32(cc.Split(',')[1]), move_long = 100;
+            //Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+            //    (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_ABSOLUTE | Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
+                (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+
+            await Task.Delay(2000);
+            Win32Mouse.MoveMouseToPoint(new Point()
+            {
+                X = (int_X + 100) * 65536 / 1920,
+                Y = 480
+            });
+            await Task.Delay(3000);
+            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTUP, (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
+
+
         }
     }
 }
