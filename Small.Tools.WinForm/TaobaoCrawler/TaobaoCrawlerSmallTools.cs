@@ -382,7 +382,7 @@ namespace Small.Tools.WinForm
 
             LogWrite("正在解析中，请耐心等待");
             LogWrite("按钮已禁用，等待解析完成释放");
-            LogWrite("—————————————————————————————————————————————————————————————");
+            LogWrite("_______________________________________________________________");
 
             //平台
             string platformCode = string.Empty;
@@ -425,9 +425,6 @@ namespace Small.Tools.WinForm
                 LogWrite($"正在解析第“{i}”页数据信息");
             }
 
-            //启动定时器
-            timer.Enabled = false;
-
             #region 筛选数据
 
             //平台
@@ -450,7 +447,7 @@ namespace Small.Tools.WinForm
 
             #endregion
 
-            Delay(2000);
+            butStartParsing.Enabled = true; //释放按钮禁用
         }
 
         /// <summary>
@@ -461,8 +458,6 @@ namespace Small.Tools.WinForm
         {
             try
             {
-                //启动定时器
-                //timer.Enabled = true;
                 await Task.Delay(1200);
 
                 var source = await webBrowser.GetSourceAsync();
@@ -951,27 +946,6 @@ namespace Small.Tools.WinForm
             webBrowser.ShowDevTools();
         }
 
-        private async void timer_Tick(object sender, EventArgs e)
-        {
-            var cc = textBox1.Text;
-
-            int int_X = Convert.ToInt32(cc.Split(',')[0]), int_Y = Convert.ToInt32(cc.Split(',')[1]), move_long = 100;
-            //Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
-            //    (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
-            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_ABSOLUTE | Win32Mouse.MOUSEEVENTF_LEFTDOWN | Win32Mouse.MOUSEEVENTF_MOVE,
-                (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
-
-            await Task.Delay(2000);
-            Win32Mouse.MoveMouseToPoint(new Point()
-            {
-                X = (int_X + 100) * 65536 / 1920,
-                Y = 480
-            });
-
-            await Task.Delay(3000);
-            Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTUP, (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
-        }
-
         private async void button2_Click(object sender, EventArgs e)
         {
             var cc = textBox1.Text;
@@ -990,8 +964,6 @@ namespace Small.Tools.WinForm
             });
             await Task.Delay(3000);
             Win32Mouse.mouse_event(Win32Mouse.MOUSEEVENTF_LEFTUP, (int_X + 100) * 65536 / 1920, (int_Y + move_long) * 65536 / 1080, 0, 0);
-
-
         }
     }
 }
