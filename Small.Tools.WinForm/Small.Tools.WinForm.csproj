@@ -100,6 +100,7 @@
   <ItemGroup>
     <Compile Include="TaobaoCrawler\Common\CookieVisitor.cs" />
     <Compile Include="TaobaoCrawler\Common\HttpRequest.cs" />
+    <Compile Include="TaobaoCrawler\Common\KeyboardHook.cs" />
     <Compile Include="TaobaoCrawler\Common\MenuHandler.cs" />
     <Compile Include="TaobaoCrawler\Common\Win32Mouse.cs" />
     <Compile Include="TaobaoCrawler\TaobaoCrawlerSmallTools.cs">
@@ -135,8 +136,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <None Include="tsconfig1.json" />
-    <None Include="tsconfig2.json" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -146,17 +145,14 @@
       <Project>{1c3c4252-7bfb-447a-8283-fe420648c387}</Project>
       <Name>Small.Tools.Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Small.Tools.DataBase\Small.Tools.DataBase.csproj">
+      <Project>{6B6BFB83-9DEE-41B3-9E56-C07CE2D62155}</Project>
+      <Name>Small.Tools.DataBase</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Small.Tools.Entity\Small.Tools.Entity.csproj">
       <Project>{cf875c55-405e-4318-9620-d83a78f8202d}</Project>
       <Name>Small.Tools.Entity</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="HTMLPage1 - 复制 - 复制.html" />
-    <Content Include="HTMLPage1 - 复制.html" />
-    <Content Include="HTMLPage1.html" />
-    <Content Include="HTMLPage2.html" />
-    <Content Include="JavaScript1.js" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="MSHTML">

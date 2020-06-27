@@ -5,6 +5,9 @@ using HtmlAgilityPack;
 using mshtml;
 using Small.Tools.Common;
 using Small.Tools.Common.TaobaoCrawler;
+using Small.Tools.DataBase;
+using Small.Tools.DataBase.Extensions;
+using Small.Tools.Entity;
 using Small.Tools.Entity.TaobaoCrawlerEntity;
 using Small.Tools.WinForm.TaobaoCrawler;
 using Small.Tools.WinForm.TaobaoCrawler.Common;
@@ -13,7 +16,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -75,6 +80,7 @@ namespace Small.Tools.WinForm
         //屏幕分辨率
         private static int resolvingWidth = 0;
         private static int resolvingHeigth = 0;
+        public static KeyboardHook k_hook = null;
 
         /// <summary>
         /// 无参构造
@@ -82,9 +88,11 @@ namespace Small.Tools.WinForm
         public TaobaoCrawlerSmallTools()
         {
             InitializeComponent();
+
             #region > CefSharp Settings
             CefSettings settings = new CefSettings();
             settings.Locale = "zh-CN";
+            settings.UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36";
             Cef.Initialize(settings);
 
             CefSharpSettings.LegacyJavascriptBindingEnabled = true;
@@ -99,6 +107,55 @@ namespace Small.Tools.WinForm
             webBrowser.Size = new System.Drawing.Size(554, 552);
             webBrowser.TabIndex = 0;
             this.panel_right.Controls.Add(webBrowser);
+
+            //启动一个线程更新代理“IP”
+            var starTime = DateTime.Now;
+            try
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    bool result = true;
+                    while (result)
+                    {
+                        TimeSpan dateTimeSpan = new TimeSpan(DateTime.Now.Ticks);
+                        TimeSpan duration = new TimeSpan(starTime.Ticks).Subtract(dateTimeSpan).Duration();
+                        var minutes = duration.TotalMinutes;
+                        if (minutes >= 1)
+                        {
+                            var entityList = new List<ip_agency_data>();
+                            using (var dbConnection = BaseConfig.GetSqlConnection())
+                            {
+                                entityList = dbConnection.QueryALL<ip_agency_data>().ToList()
+                                .Where(c => c.ip_sourcename != "登陆权限验证").ToList();
+                                foreach (var info in entityList)
+                                {
+                                    if (WhetherTheAgentIsAvailable(info.ip_address, info.ip_port))
+                                    {
+                                        //代理
+                                        string userName = string.Empty;
+                                        string passWord = string.Empty;
+                                        LoadingProxy(info.ip_address, info.ip_port, userName, passWord);
+                                        LogWrite($"设置代理“{info.ip_address}:{info.ip_port}”");
+                                        starTime = DateTime.Now;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        dbConnection.Delete(info);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("设置IP代理失败，3秒之后程序自动关闭，error:" + ex.Message, "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Delay(3000);
+                System.Environment.Exit(0);
+            }
+
             //进入登录地址
             webBrowser.Load(loginAddress);
             #endregion
@@ -111,7 +168,70 @@ namespace Small.Tools.WinForm
         //窗体加载
         private void TaobaoCrawlerSmallTools_Load(object sender, EventArgs e) { LogWrite("程序正在启动，请稍后"); }
 
+        #region 设置代理
+
+        private void LoadingProxy(string address, string port, string userName, string passWord)
+        {
+            SetProxy(webBrowser, $"{address}:{port}");
+            CefSharp.CefSharpSettings.Proxy = new CefSharp.ProxyOptions(address, port, userName, passWord);
+        }
+
+        private void SetProxy(ChromiumWebBrowser webBrowser, string Address)
+        {
+            //Address: "127.0.0.1:1080"
+            //只能在WebBrowser UI呈现后获取 Request 上下文
+            Cef.UIThreadTaskFactory.StartNew(delegate
+            {
+                //获取 Request 上下文
+                var context = webBrowser.GetBrowser().GetHost().RequestContext;
+                var dict = new Dictionary<string, object>();
+                dict.Add("mode", "fixed_servers");
+                dict.Add("server", Address);
+                //设置代理
+                string error;
+                context.SetPreference("proxy", dict, out error);
+
+                //如果 error 不为空则表示设置失败。
+                if (!string.IsNullOrWhiteSpace(error))
+                {
+                    MessageBox.Show(error, "Tip", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            });
+        }
+
+        #endregion
+
         #region > private The event
+
+        //搜索
+        private async void butSearch_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtKeyword.Text.Trim())) { MessageBox.Show("请输入需要搜索的关键字。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+            if (!string.IsNullOrWhiteSpace(txtKeyword.Text.Trim()))
+            {
+                string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 0);
+                webBrowser.Load(new_searchAddress);
+                currentAddress = new_searchAddress; //当前加载页面地址
+                while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+                await Task.Delay(3000);
+
+                var source = await webBrowser.GetSourceAsync();
+                var document = new HtmlAgilityPack.HtmlDocument();
+                document.LoadHtml(source);
+                //总页数
+                HtmlNodeCollection totalNodes = document.DocumentNode.SelectNodes("//div[@class='total']");
+                if (totalNodes != null)
+                    if (totalNodes.Count() > 0)
+                        totalValue = Convert.ToInt32(totalNodes[0].InnerText.Replace(@"\n", "").Replace("，", "").Replace("共", "").Replace("页", "").Trim());
+                var pageNumber = totalValue - 1;
+                //最后一页商品跳转数
+                lastPageCount = pageNumber * pageSize;
+
+                LogWrite($"当前共解析到“{totalValue}”页数据");
+                butStartParsing.Enabled = true;
+            }
+        }
 
         //窗体关闭
         private void TaobaoCrawlerSmallTools_FormClosing(object sender, FormClosingEventArgs e) { Cef.Shutdown(); }
@@ -130,21 +250,37 @@ namespace Small.Tools.WinForm
         //销量只可输入数据
         private void txtSales_KeyPress(object sender, KeyPressEventArgs e) { if (!(e.KeyChar == '\b' || (e.KeyChar >= '0' && e.KeyChar <= '9'))) e.Handled = true; }
 
-        //输入关键字进行搜索，以及解析总条数和总页数
-        private void txtKeyword_TextChanged(object sender, EventArgs e)
-        {
-            if (!string.IsNullOrWhiteSpace(txtKeyword.Text.Trim()))
-            {
-                string new_searchAddress = string.Format(searchAddress, URLCommon.UrlEncode(txtKeyword.Text.Trim()), 0);
-                webBrowser.Load(new_searchAddress);
-                currentAddress = new_searchAddress; //当前加载页面地址
-                Delay(1000);
-            }
-        }
-
         #endregion
 
         #region > private methods
+
+        private static bool WhetherTheAgentIsAvailable(string ProxyIP, string ProxyPort)
+        {
+            try
+            {
+                using (WebClient web = new WebClient())
+                {
+                    HttpWebRequest Req;
+                    HttpWebResponse Resp;
+                    WebProxy proxyObject = new WebProxy(ProxyIP, Convert.ToInt32(ProxyPort));
+                    Req = WebRequest.Create("https://www.baidu.com") as HttpWebRequest;
+                    Req.Proxy = proxyObject; //设置代理
+                    Req.Timeout = 3000;   //超时
+                    Resp = (HttpWebResponse)Req.GetResponse();
+                    Encoding bin = Encoding.GetEncoding("UTF-8");
+                    using (StreamReader sr = new StreamReader(Resp.GetResponseStream(), bin))
+                    {
+                        string str = sr.ReadToEnd();
+                        if (str.Contains("百度"))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { return false; }
+            return false;
+        }
 
         /// <summary>
         /// 休眠且避免页面卡死
@@ -344,7 +480,7 @@ namespace Small.Tools.WinForm
         /// 获取“IFrame”的Html
         /// </summary>
         /// <returns>string</returns>
-        public async Task<string> GetFrameHtml(int index, string frameName, string url)
+        public async Task<Tuple<string, bool>> GetFrameHtml(string frameName, string url)
         {
             string resultStr = string.Empty;
             IFrame frame = null;
@@ -352,12 +488,32 @@ namespace Small.Tools.WinForm
             foreach (var i in identifiers)
             {
                 frame = webBrowser.GetBrowser().GetFrame(i);
-                if (frame.Name == frameName || frame.Url.IndexOf("url") != -1)
+
+                var htmlId = string.Empty;
+                var task = frame.EvaluateScriptAsync(string.Format("document.getElementById('sufei-dialog-content').attributes['id'].value;"));
+                task.ContinueWith(t =>
                 {
-                    return await frame.GetSourceAsync();
+                    if (!t.IsFaulted)
+                    {
+                        var response = t.Result;
+                        if (response.Success == true)
+                        {
+                            if (response.Result != null)
+                            {
+                                htmlId = response.Result.ToString();
+                            }
+                        }
+                    }
+                }).Wait();
+
+                if (frame.Name == frameName
+                    || frame.Url.IndexOf(url) != -1
+                    || (!string.IsNullOrWhiteSpace(htmlId) && htmlId == "sufei-dialog-content"))
+                {
+                    return new Tuple<string, bool>(await frame.GetSourceAsync(), true);
                 }
             }
-            return string.Empty;
+            return new Tuple<string, bool>("", false); ;
         }
 
         #endregion
@@ -380,9 +536,9 @@ namespace Small.Tools.WinForm
             entitySource = new List<TaobaoCrawlerEntity>(); //存储列表页数据信息
             butStartParsing.Enabled = false; //禁用
 
+            LogWrite("_______________________________________________________________");
             LogWrite("正在解析中，请耐心等待");
             LogWrite("按钮已禁用，等待解析完成释放");
-            LogWrite("_______________________________________________________________");
 
             //平台
             string platformCode = string.Empty;
@@ -479,20 +635,19 @@ namespace Small.Tools.WinForm
                 if (goodsNodes == null) goodsNodes = document.DocumentNode.SelectNodes("//div[@class='item J_MouserOnverReq']");
                 if (goodsNodes == null) { MessageBox.Show("程序解析“Html”错误“//div[starts-with(@class,'item J_MouserOnverReq')]”，请联系作者或者重试。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
-                //总页数
-                HtmlNodeCollection totalNodes = document.DocumentNode.SelectNodes("//div[@class='total']");
-                if (totalNodes != null)
-                    if (totalNodes.Count() > 0)
-                        totalValue = Convert.ToInt32(totalNodes[0].InnerText.Replace(@"\n", "").Replace("，", "").Replace("共", "").Replace("页", "").Trim());
-                var pageNumber = totalValue - 1;
-                //最后一页商品跳转数
-                lastPageCount = pageNumber * pageSize;
-
                 foreach (var node in goodsNodes)
                 {
                     TaobaoCrawlerEntity productEntity = new TaobaoCrawlerEntity();
                     HtmlAgilityPack.HtmlDocument node_document = new HtmlAgilityPack.HtmlDocument();
                     node_document.LoadHtml(node.OuterHtml);
+
+                    //滑动验证码
+                    if (await IsDialog())
+                    {
+                        button1_Click(null, null);
+                        await Task.Delay(2000);
+                    }
+
                     #region 解析“Html”
 
                     #region 列表图片(商品编号 | 商品金额 | 商品详细页地址 | 商品列表页图片地址 | 商品搜索列表页显示的名称) //div[@class='pic']
@@ -613,7 +768,7 @@ namespace Small.Tools.WinForm
                         webBrowser.Load(productEntity.ProductDetailsAddress);
 
                     while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
-
+                    //解析详情页
                     var detailsInfo = await AnalysisDetails(productEntity, currentAddress);
                     if (detailsInfo.Item1 != null && detailsInfo.Item2 == true)
                         productEntity.details = detailsInfo.Item1;
@@ -635,7 +790,7 @@ namespace Small.Tools.WinForm
         /// <returns>bool</returns>
         private async Task<Tuple<TaobaoCrawlerDetails, bool>> AnalysisDetails(TaobaoCrawlerEntity entity, string currentAddress)
         {
-            await Task.Delay(1200);
+            await Task.Delay(800);
             var taobaoCrawlerDetails = new TaobaoCrawlerDetails();
             if (entity != null)
             {
@@ -751,6 +906,7 @@ namespace Small.Tools.WinForm
 
             webBrowser.Load(currentAddress);
             while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
+            await Task.Delay(1000);
             return new Tuple<TaobaoCrawlerDetails, bool>(taobaoCrawlerDetails, true);
         }
 
@@ -768,7 +924,7 @@ namespace Small.Tools.WinForm
 
             //验证模态框
             #region 读取验证模态框
-
+            var is_dialog_nodes = false;
             var dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
             if (dialog_nodes == null)
                 dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
@@ -778,31 +934,17 @@ namespace Small.Tools.WinForm
             //上面没有读取到验证码模态框，所以去“Frame”读写模态框
             if (dialog_nodes == null)
             {
-                int index = 0;
-                do
+                var htmlBody = await GetFrameHtml("<!--dynamicFrame889C6A0361F526C951EACB19C2BC4D31-->", "https://mdskip.taobao.com//core/initItemDetail.htm");
+                if (!string.IsNullOrWhiteSpace(htmlBody.Item1) && htmlBody.Item2)
                 {
-                    var htmlBody = await GetFrameHtml(index, "<!--dynamicFrame889C6A0361F526C951EACB19C2BC4D31-->", "https://mdskip.taobao.com//core/initItemDetail.htm");
-                    if (htmlBody != null)
-                    {
-                        await Task.Delay(1200); //休息一下下
-                        var htmlBodyDoc = new HtmlAgilityPack.HtmlDocument();
-                        htmlBodyDoc.LoadHtml(htmlBody);
-                        while (GetHtmlValue().Trim().ToLower() != "complete".ToLower()) { Application.DoEvents(); };
-
-                        dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='sufei-dialog']");
-                        if (dialog_nodes == null)
-                            dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@id='nocaptcha']");
-                        if (dialog_nodes == null)
-                            dialog_nodes = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='wrapper']");
-
-                        if (dialog_nodes != null) break;
-                    }
-                } while (index++ <= webBrowser.GetBrowser().GetFrameCount());
+                    is_dialog_nodes = true;
+                    await Task.Delay(1200); //休息一下下
+                }
             }
 
             #endregion
 
-            if (dialog_nodes != null)
+            if (dialog_nodes != null || is_dialog_nodes == true)
             {
                 try
                 {
@@ -937,6 +1079,10 @@ namespace Small.Tools.WinForm
                     dic.Add("ShopNameAddress", "ShopNameAddress");
                     dic.Add("StoreAddress", "StoreAddress");
                     ExcelCommon.ToExcel(dataTable, foldPath, dic, ref error);
+                }
+                else
+                {
+                    MessageBox.Show("暂无导出数据。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return;
                 }
             }
         }

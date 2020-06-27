@@ -33,6 +33,7 @@ namespace Small.Tools.WinForm
             this.panel_middle = new System.Windows.Forms.Panel();
             this.panel_right = new System.Windows.Forms.Panel();
             this.panel_left_middle = new System.Windows.Forms.Panel();
+            this.butSearch = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
@@ -70,24 +71,23 @@ namespace Small.Tools.WinForm
             this.panel_middle.Controls.Add(this.panel_bottom);
             this.panel_middle.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel_middle.Location = new System.Drawing.Point(0, 0);
-            this.panel_middle.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.panel_middle.Name = "panel_middle";
-            this.panel_middle.Size = new System.Drawing.Size(1296, 746);
+            this.panel_middle.Size = new System.Drawing.Size(707, 426);
             this.panel_middle.TabIndex = 0;
             // 
             // panel_right
             // 
             this.panel_right.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panel_right.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel_right.Location = new System.Drawing.Point(987, 0);
-            this.panel_right.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.panel_right.Location = new System.Drawing.Point(540, 0);
             this.panel_right.Name = "panel_right";
-            this.panel_right.Size = new System.Drawing.Size(309, 655);
+            this.panel_right.Size = new System.Drawing.Size(167, 373);
             this.panel_right.TabIndex = 3;
             // 
             // panel_left_middle
             // 
             this.panel_left_middle.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel_left_middle.Controls.Add(this.butSearch);
             this.panel_left_middle.Controls.Add(this.button2);
             this.panel_left_middle.Controls.Add(this.textBox1);
             this.panel_left_middle.Controls.Add(this.button1);
@@ -110,18 +110,26 @@ namespace Small.Tools.WinForm
             this.panel_left_middle.Controls.Add(this.labSales);
             this.panel_left_middle.Controls.Add(this.labKeyword);
             this.panel_left_middle.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panel_left_middle.Location = new System.Drawing.Point(508, 0);
-            this.panel_left_middle.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.panel_left_middle.Location = new System.Drawing.Point(278, 0);
             this.panel_left_middle.Name = "panel_left_middle";
-            this.panel_left_middle.Size = new System.Drawing.Size(479, 655);
+            this.panel_left_middle.Size = new System.Drawing.Size(262, 373);
             this.panel_left_middle.TabIndex = 2;
+            // 
+            // butSearch
+            // 
+            this.butSearch.Location = new System.Drawing.Point(212, 116);
+            this.butSearch.Name = "butSearch";
+            this.butSearch.Size = new System.Drawing.Size(44, 23);
+            this.butSearch.TabIndex = 14;
+            this.butSearch.Text = "搜 索";
+            this.butSearch.UseVisualStyleBackColor = true;
+            this.butSearch.Click += new System.EventHandler(this.butSearch_Click);
             // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(270, 564);
-            this.button2.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.button2.Location = new System.Drawing.Point(143, 322);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(138, 40);
+            this.button2.Size = new System.Drawing.Size(75, 23);
             this.button2.TabIndex = 13;
             this.button2.Text = "测试";
             this.button2.UseVisualStyleBackColor = true;
@@ -129,20 +137,18 @@ namespace Small.Tools.WinForm
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(75, 492);
-            this.textBox1.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.textBox1.Location = new System.Drawing.Point(37, 281);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(180, 31);
+            this.textBox1.Size = new System.Drawing.Size(100, 21);
             this.textBox1.TabIndex = 12;
-            this.textBox1.Text = "960,480";
+            this.textBox1.Text = "985,480";
             this.textBox1.DoubleClick += new System.EventHandler(this.textBox1_DoubleClick);
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(270, 488);
-            this.button1.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.button1.Location = new System.Drawing.Point(143, 279);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(138, 40);
+            this.button1.Size = new System.Drawing.Size(75, 23);
             this.button1.TabIndex = 11;
             this.button1.Text = "button1";
             this.button1.UseVisualStyleBackColor = true;
@@ -151,10 +157,9 @@ namespace Small.Tools.WinForm
             // txtAnlyticNumber
             // 
             this.txtAnlyticNumber.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtAnlyticNumber.Location = new System.Drawing.Point(134, 359);
-            this.txtAnlyticNumber.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.txtAnlyticNumber.Location = new System.Drawing.Point(62, 205);
             this.txtAnlyticNumber.Name = "txtAnlyticNumber";
-            this.txtAnlyticNumber.Size = new System.Drawing.Size(329, 35);
+            this.txtAnlyticNumber.Size = new System.Drawing.Size(193, 23);
             this.txtAnlyticNumber.TabIndex = 10;
             this.txtAnlyticNumber.Text = "5";
             this.txtAnlyticNumber.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtSales_KeyPress);
@@ -163,10 +168,9 @@ namespace Small.Tools.WinForm
             // 
             this.labAnlytic.AutoSize = true;
             this.labAnlytic.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labAnlytic.Location = new System.Drawing.Point(6, 366);
-            this.labAnlytic.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labAnlytic.Location = new System.Drawing.Point(-1, 209);
             this.labAnlytic.Name = "labAnlytic";
-            this.labAnlytic.Size = new System.Drawing.Size(117, 28);
+            this.labAnlytic.Size = new System.Drawing.Size(68, 17);
             this.labAnlytic.TabIndex = 9;
             this.labAnlytic.Text = "解析页数：";
             // 
@@ -174,10 +178,9 @@ namespace Small.Tools.WinForm
             // 
             this.butLogin.Cursor = System.Windows.Forms.Cursors.Hand;
             this.butLogin.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.butLogin.Location = new System.Drawing.Point(326, 114);
-            this.butLogin.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.butLogin.Location = new System.Drawing.Point(181, 65);
             this.butLogin.Name = "butLogin";
-            this.butLogin.Size = new System.Drawing.Size(138, 40);
+            this.butLogin.Size = new System.Drawing.Size(75, 23);
             this.butLogin.TabIndex = 8;
             this.butLogin.Text = "登 录";
             this.butLogin.UseVisualStyleBackColor = true;
@@ -186,10 +189,9 @@ namespace Small.Tools.WinForm
             // labTheDivider
             // 
             this.labTheDivider.AutoSize = true;
-            this.labTheDivider.Location = new System.Drawing.Point(-7, 156);
-            this.labTheDivider.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labTheDivider.Location = new System.Drawing.Point(-4, 92);
             this.labTheDivider.Name = "labTheDivider";
-            this.labTheDivider.Size = new System.Drawing.Size(527, 21);
+            this.labTheDivider.Size = new System.Drawing.Size(287, 12);
             this.labTheDivider.TabIndex = 7;
             this.labTheDivider.Text = "_______________________________________________";
             // 
@@ -197,10 +199,9 @@ namespace Small.Tools.WinForm
             // 
             this.labPassWord.AutoSize = true;
             this.labPassWord.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labPassWord.Location = new System.Drawing.Point(48, 70);
-            this.labPassWord.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labPassWord.Location = new System.Drawing.Point(26, 40);
             this.labPassWord.Name = "labPassWord";
-            this.labPassWord.Size = new System.Drawing.Size(75, 28);
+            this.labPassWord.Size = new System.Drawing.Size(44, 17);
             this.labPassWord.TabIndex = 6;
             this.labPassWord.Text = "密码：";
             // 
@@ -208,10 +209,9 @@ namespace Small.Tools.WinForm
             // 
             this.labUserName.AutoSize = true;
             this.labUserName.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labUserName.Location = new System.Drawing.Point(26, 23);
-            this.labUserName.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labUserName.Location = new System.Drawing.Point(14, 13);
             this.labUserName.Name = "labUserName";
-            this.labUserName.Size = new System.Drawing.Size(96, 28);
+            this.labUserName.Size = new System.Drawing.Size(56, 17);
             this.labUserName.TabIndex = 5;
             this.labUserName.Text = "用户名：";
             // 
@@ -220,10 +220,9 @@ namespace Small.Tools.WinForm
             this.radioAll.AutoSize = true;
             this.radioAll.Cursor = System.Windows.Forms.Cursors.Hand;
             this.radioAll.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.radioAll.Location = new System.Drawing.Point(141, 304);
-            this.radioAll.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.radioAll.Location = new System.Drawing.Point(66, 174);
             this.radioAll.Name = "radioAll";
-            this.radioAll.Size = new System.Drawing.Size(85, 32);
+            this.radioAll.Size = new System.Drawing.Size(54, 21);
             this.radioAll.TabIndex = 4;
             this.radioAll.Text = "全 部";
             this.radioAll.UseVisualStyleBackColor = true;
@@ -234,10 +233,9 @@ namespace Small.Tools.WinForm
             this.radioTaobao.Checked = true;
             this.radioTaobao.Cursor = System.Windows.Forms.Cursors.Hand;
             this.radioTaobao.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.radioTaobao.Location = new System.Drawing.Point(248, 304);
-            this.radioTaobao.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.radioTaobao.Location = new System.Drawing.Point(126, 173);
             this.radioTaobao.Name = "radioTaobao";
-            this.radioTaobao.Size = new System.Drawing.Size(85, 32);
+            this.radioTaobao.Size = new System.Drawing.Size(54, 21);
             this.radioTaobao.TabIndex = 4;
             this.radioTaobao.TabStop = true;
             this.radioTaobao.Text = "淘 宝";
@@ -247,10 +245,9 @@ namespace Small.Tools.WinForm
             // 
             this.radioTmall.AutoSize = true;
             this.radioTmall.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.radioTmall.Location = new System.Drawing.Point(361, 308);
-            this.radioTmall.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.radioTmall.Location = new System.Drawing.Point(199, 176);
             this.radioTmall.Name = "radioTmall";
-            this.radioTmall.Size = new System.Drawing.Size(88, 25);
+            this.radioTmall.Size = new System.Drawing.Size(53, 16);
             this.radioTmall.TabIndex = 4;
             this.radioTmall.Text = "天 猫";
             this.radioTmall.UseVisualStyleBackColor = true;
@@ -259,10 +256,9 @@ namespace Small.Tools.WinForm
             // 
             this.butExportExcel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.butExportExcel.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.butExportExcel.Location = new System.Drawing.Point(103, 425);
-            this.butExportExcel.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.butExportExcel.Location = new System.Drawing.Point(62, 239);
             this.butExportExcel.Name = "butExportExcel";
-            this.butExportExcel.Size = new System.Drawing.Size(211, 40);
+            this.butExportExcel.Size = new System.Drawing.Size(105, 23);
             this.butExportExcel.TabIndex = 3;
             this.butExportExcel.Text = "导出“Excel”";
             this.butExportExcel.UseVisualStyleBackColor = true;
@@ -271,11 +267,11 @@ namespace Small.Tools.WinForm
             // butStartParsing
             // 
             this.butStartParsing.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.butStartParsing.Enabled = false;
             this.butStartParsing.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.butStartParsing.Location = new System.Drawing.Point(325, 425);
-            this.butStartParsing.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.butStartParsing.Location = new System.Drawing.Point(181, 239);
             this.butStartParsing.Name = "butStartParsing";
-            this.butStartParsing.Size = new System.Drawing.Size(138, 40);
+            this.butStartParsing.Size = new System.Drawing.Size(75, 23);
             this.butStartParsing.TabIndex = 3;
             this.butStartParsing.Text = "开始解析";
             this.butStartParsing.UseVisualStyleBackColor = true;
@@ -284,10 +280,9 @@ namespace Small.Tools.WinForm
             // txtSales
             // 
             this.txtSales.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtSales.Location = new System.Drawing.Point(136, 254);
-            this.txtSales.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.txtSales.Location = new System.Drawing.Point(63, 145);
             this.txtSales.Name = "txtSales";
-            this.txtSales.Size = new System.Drawing.Size(329, 35);
+            this.txtSales.Size = new System.Drawing.Size(192, 23);
             this.txtSales.TabIndex = 2;
             this.txtSales.Text = "20";
             this.txtSales.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtSales_KeyPress);
@@ -295,44 +290,37 @@ namespace Small.Tools.WinForm
             // txtPassWord
             // 
             this.txtPassWord.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtPassWord.Location = new System.Drawing.Point(136, 65);
-            this.txtPassWord.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.txtPassWord.Location = new System.Drawing.Point(74, 37);
             this.txtPassWord.Name = "txtPassWord";
             this.txtPassWord.PasswordChar = '*';
-            this.txtPassWord.Size = new System.Drawing.Size(329, 35);
+            this.txtPassWord.Size = new System.Drawing.Size(181, 23);
             this.txtPassWord.TabIndex = 2;
             this.txtPassWord.Text = "HUANGsl1995";
-            this.txtPassWord.TextChanged += new System.EventHandler(this.txtKeyword_TextChanged);
             // 
             // txtUserName
             // 
             this.txtUserName.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtUserName.Location = new System.Drawing.Point(136, 18);
-            this.txtUserName.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.txtUserName.Location = new System.Drawing.Point(74, 10);
             this.txtUserName.Name = "txtUserName";
-            this.txtUserName.Size = new System.Drawing.Size(329, 35);
+            this.txtUserName.Size = new System.Drawing.Size(181, 23);
             this.txtUserName.TabIndex = 2;
             this.txtUserName.Text = "木木木子1995";
-            this.txtUserName.TextChanged += new System.EventHandler(this.txtKeyword_TextChanged);
             // 
             // txtKeyword
             // 
             this.txtKeyword.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.txtKeyword.Location = new System.Drawing.Point(136, 203);
-            this.txtKeyword.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.txtKeyword.Location = new System.Drawing.Point(63, 116);
             this.txtKeyword.Name = "txtKeyword";
-            this.txtKeyword.Size = new System.Drawing.Size(329, 35);
+            this.txtKeyword.Size = new System.Drawing.Size(143, 23);
             this.txtKeyword.TabIndex = 2;
-            this.txtKeyword.TextChanged += new System.EventHandler(this.txtKeyword_TextChanged);
             // 
             // labPlatform
             // 
             this.labPlatform.AutoSize = true;
             this.labPlatform.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labPlatform.Location = new System.Drawing.Point(50, 308);
-            this.labPlatform.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labPlatform.Location = new System.Drawing.Point(23, 176);
             this.labPlatform.Name = "labPlatform";
-            this.labPlatform.Size = new System.Drawing.Size(75, 28);
+            this.labPlatform.Size = new System.Drawing.Size(44, 17);
             this.labPlatform.TabIndex = 1;
             this.labPlatform.Text = "平台：";
             // 
@@ -340,10 +328,9 @@ namespace Small.Tools.WinForm
             // 
             this.labSales.AutoSize = true;
             this.labSales.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labSales.Location = new System.Drawing.Point(28, 261);
-            this.labSales.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labSales.Location = new System.Drawing.Point(11, 149);
             this.labSales.Name = "labSales";
-            this.labSales.Size = new System.Drawing.Size(96, 28);
+            this.labSales.Size = new System.Drawing.Size(56, 17);
             this.labSales.TabIndex = 1;
             this.labSales.Text = "销售量：";
             // 
@@ -351,10 +338,9 @@ namespace Small.Tools.WinForm
             // 
             this.labKeyword.AutoSize = true;
             this.labKeyword.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.labKeyword.Location = new System.Drawing.Point(28, 210);
-            this.labKeyword.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
+            this.labKeyword.Location = new System.Drawing.Point(11, 120);
             this.labKeyword.Name = "labKeyword";
-            this.labKeyword.Size = new System.Drawing.Size(96, 28);
+            this.labKeyword.Size = new System.Drawing.Size(56, 17);
             this.labKeyword.TabIndex = 0;
             this.labKeyword.Text = "关键字：";
             // 
@@ -364,9 +350,8 @@ namespace Small.Tools.WinForm
             this.panel_left.Controls.Add(this.listBox_LogOutput);
             this.panel_left.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel_left.Location = new System.Drawing.Point(0, 0);
-            this.panel_left.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.panel_left.Name = "panel_left";
-            this.panel_left.Size = new System.Drawing.Size(508, 655);
+            this.panel_left.Size = new System.Drawing.Size(278, 373);
             this.panel_left.TabIndex = 1;
             // 
             // listBox_LogOutput
@@ -376,30 +361,27 @@ namespace Small.Tools.WinForm
             this.listBox_LogOutput.Font = new System.Drawing.Font("微软雅黑", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.listBox_LogOutput.ForeColor = System.Drawing.Color.Black;
             this.listBox_LogOutput.FormattingEnabled = true;
-            this.listBox_LogOutput.ItemHeight = 28;
+            this.listBox_LogOutput.ItemHeight = 17;
             this.listBox_LogOutput.Location = new System.Drawing.Point(0, 0);
-            this.listBox_LogOutput.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.listBox_LogOutput.Name = "listBox_LogOutput";
-            this.listBox_LogOutput.Size = new System.Drawing.Size(506, 653);
+            this.listBox_LogOutput.Size = new System.Drawing.Size(276, 371);
             this.listBox_LogOutput.TabIndex = 0;
             // 
             // panel_bottom
             // 
             this.panel_bottom.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_bottom.Location = new System.Drawing.Point(0, 655);
-            this.panel_bottom.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
+            this.panel_bottom.Location = new System.Drawing.Point(0, 373);
             this.panel_bottom.Name = "panel_bottom";
-            this.panel_bottom.Size = new System.Drawing.Size(1296, 91);
+            this.panel_bottom.Size = new System.Drawing.Size(707, 53);
             this.panel_bottom.TabIndex = 0;
             // 
             // TaobaoCrawlerSmallTools
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 21F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1296, 746);
+            this.ClientSize = new System.Drawing.Size(707, 426);
             this.Controls.Add(this.panel_middle);
-            this.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.Name = "TaobaoCrawlerSmallTools";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Taobao Crawler Small Tools";
@@ -445,6 +427,7 @@ namespace Small.Tools.WinForm
         private System.Windows.Forms.Button butExportExcel;
         private System.Windows.Forms.ListBox listBox_LogOutput;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button butSearch;
     }
 }
 

@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\packages\HtmlAgilityPack.1.11.24\lib\Net45\HtmlAgilityPack.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -44,12 +47,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enum\IQueueType.cs" />
+    <Compile Include="HtmlRule.cs" />
+    <Compile Include="Model\ProxyViewModel.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Win32Mouse.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Small.Tools.DataBase\Small.Tools.DataBase.csproj">
+      <Project>{6b6bfb83-9dee-41b3-9e56-c07ce2d62155}</Project>
+      <Name>Small.Tools.DataBase</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Small.Tools.Entity\Small.Tools.Entity.csproj">
+      <Project>{cf875c55-405e-4318-9620-d83a78f8202d}</Project>
+      <Name>Small.Tools.Entity</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

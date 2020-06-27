@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Small.Tools.DataBase;
+using Small.Tools.DataBase.Extensions;
+using Small.Tools.Entity;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -7,15 +10,31 @@ using System.Threading.Tasks;
 
 namespace Small.Tools.Console
 {
-    class Program
+    public class Program
     {
         static void Main(string[] args)
         {
-            //571,223
-            //Win32Mouse.SetCursorPos(569+5,695+121);
-            Point p;
-            Win32Mouse.GetCursorPos(out p);
+            //获取代理IP
+            Task.Run(() => HtmlRule.Liunian());
+            Task.Run(() => HtmlRule.Xici());
+            Task.Run(() => HtmlRule.XiciGaoni());
+            Task.Run(() => HtmlRule.XiciPutong());
+
+
             System.Console.ReadLine();
+        }
+
+        /// <summary>
+        /// 插入到数据库
+        /// </summary>
+        /// <param name="info">info</param>
+        public static void Add_IPAddress(ip_agency_data info)
+        {
+            using (var dbConnection = BaseConfig.GetSqlConnection())
+            {
+                var result = dbConnection.Insert<ip_agency_data>(info);
+                System.Console.WriteLine($"{info.ip_address}:{info.ip_port} ， 已加入到数据库。");
+            }
         }
     }
 }
