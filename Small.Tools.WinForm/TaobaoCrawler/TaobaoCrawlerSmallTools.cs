@@ -108,6 +108,8 @@ namespace Small.Tools.WinForm
             webBrowser.TabIndex = 0;
             this.panel_right.Controls.Add(webBrowser);
 
+            List<string> usedIPAddress = new List<string>();
+
             //启动一个线程更新代理“IP”
             var starTime = DateTime.Now;
             try
@@ -129,14 +131,16 @@ namespace Small.Tools.WinForm
                                 .Where(c => c.ip_sourcename != "登陆权限验证").ToList();
                                 foreach (var info in entityList)
                                 {
-                                    if (WhetherTheAgentIsAvailable(info.ip_address, info.ip_port))
+                                    if (WhetherTheAgentIsAvailable(info.ip_address, info.ip_port)
+                                    && usedIPAddress.Where(c => c.Equals($"{info.ip_address}:{info.ip_port}"))?.Count() <= 0)
                                     {
-                                        //代理
+                                        //设置代理
                                         string userName = string.Empty;
                                         string passWord = string.Empty;
                                         LoadingProxy(info.ip_address, info.ip_port, userName, passWord);
                                         LogWrite($"设置代理“{info.ip_address}:{info.ip_port}”");
                                         starTime = DateTime.Now;
+                                        usedIPAddress.Add($"{info.ip_address}:{info.ip_port}");
                                         break;
                                     }
                                     else

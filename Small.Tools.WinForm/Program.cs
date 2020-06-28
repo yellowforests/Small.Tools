@@ -17,16 +17,24 @@ namespace Small.Tools.WinForm
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            //判断是否有权限使用该程序，“ select * from [dbo].[ip_agency_data] where [ip_sourcename] ='登陆权限验证' ”
-            var entityList = new List<ip_agency_data>();
-            using (var dbConnection = BaseConfig.GetSqlConnection())
+            try
             {
-                entityList = dbConnection.Query<ip_agency_data>(c => c.ip_sourcename == "登陆权限验证").ToList();
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                //判断是否有权限使用该程序，“ select * from [dbo].[ip_agency_data] where [ip_sourcename] ='登陆权限验证' ”
+                var entityList = new List<ip_agency_data>();
+                using (var dbConnection = BaseConfig.GetSqlConnection())
+                {
+                    entityList = dbConnection.Query<ip_agency_data>(c => c.ip_sourcename == "登陆权限验证").ToList();
+                }
+                if (entityList.Count() > 0) { Application.Run(new TaobaoCrawlerSmallTools()); }
+                else { MessageBox.Show("您已无权使用该插件。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
             }
-            if (entityList.Count() > 0) { Application.Run(new TaobaoCrawlerSmallTools()); }
-            else { MessageBox.Show("您已无权使用该插件。", "信息提示", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
     }
 }
